@@ -24,19 +24,21 @@ const FEATURED_HEIGHT = 200;
 
 export default function HomeScreen() {
   const { theme, toggleTheme, isDark } = useTheme();
-  const { user, isGuest, isFavorite, addToFavorites, removeFromFavorites } = useAuth();
+  const { user, isGuest, isFavorite, addToFavorites, removeFromFavorites } =
+    useAuth();
   const { playMeditation } = useAudio();
-  const { meditations, categories, loading, error, refreshData } = useMeditations();
+  const { meditations, categories, loading, error, refreshData } =
+    useMeditations();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const styles = createStyles(theme);
 
-  const featuredMeditations = meditations.filter(m => m.featured);
+  const featuredMeditations = meditations.filter((m) => m.featured);
   const filteredMeditations = selectedCategory
-    ? meditations.filter(m => m.category === selectedCategory && !m.featured)
-    : meditations.filter(m => !m.featured);
+    ? meditations.filter((m) => m.category === selectedCategory && !m.featured)
+    : meditations.filter((m) => !m.featured);
 
   const handlePlayMeditation = async (meditation: any) => {
     await playMeditation(meditation);
@@ -45,12 +47,12 @@ export default function HomeScreen() {
 
   const handleFavoriteToggle = async (meditationId: string, event: any) => {
     event.stopPropagation();
-    
+
     if (!user) {
       router.push('/auth');
       return;
     }
-    
+
     try {
       if (isFavorite(meditationId)) {
         await removeFromFavorites(meditationId);
@@ -68,7 +70,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const greeting = user 
+  const greeting = user
     ? `Good ${getTimeOfDay()}, ${user.name}`
     : `Good ${getTimeOfDay()}`;
 
@@ -95,8 +97,8 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -121,18 +123,24 @@ export default function HomeScreen() {
       {featuredMeditations.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Featured</Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.featuredContainer}
           >
             {featuredMeditations.map((meditation, index) => (
               <TouchableOpacity
                 key={meditation.id}
-                style={[styles.featuredCard, { marginLeft: index === 0 ? 24 : 16 }]}
+                style={[
+                  styles.featuredCard,
+                  { marginLeft: index === 0 ? 24 : 16 },
+                ]}
                 onPress={() => handlePlayMeditation(meditation)}
               >
-                <Image source={{ uri: meditation.imageUrl }} style={styles.featuredImage} />
+                <Image
+                  source={{ uri: meditation.imageUrl }}
+                  style={styles.featuredImage}
+                />
                 <LinearGradient
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.featuredOverlay}
@@ -141,17 +149,29 @@ export default function HomeScreen() {
                     <Text style={styles.featuredTitle}>{meditation.title}</Text>
                     <View style={styles.featuredMeta}>
                       <Clock size={14} color="white" />
-                      <Text style={styles.featuredDuration}>{meditation.length}</Text>
+                      <Text style={styles.featuredDuration}>
+                        {meditation.length}
+                      </Text>
                     </View>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.favoriteButtonFeatured} 
-                    onPress={(event) => handleFavoriteToggle(meditation.id, event)}
+                  <TouchableOpacity
+                    style={styles.favoriteButtonFeatured}
+                    onPress={(event) =>
+                      handleFavoriteToggle(meditation.id, event)
+                    }
                   >
-                    <Heart 
-                      size={20} 
-                      color={user && isFavorite(meditation.id) ? theme.colors.accent : theme.colors.accent} 
-                      fill={user && isFavorite(meditation.id) ? theme.colors.accent : "transparent"} 
+                    <Heart
+                      size={20}
+                      color={
+                        user && isFavorite(meditation.id)
+                          ? theme.colors.accent
+                          : theme.colors.accent
+                      }
+                      fill={
+                        user && isFavorite(meditation.id)
+                          ? theme.colors.accent
+                          : 'transparent'
+                      }
                     />
                   </TouchableOpacity>
                 </LinearGradient>
@@ -164,8 +184,8 @@ export default function HomeScreen() {
       {/* Categories */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Categories</Text>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContainer}
         >
@@ -173,14 +193,16 @@ export default function HomeScreen() {
             style={[
               styles.categoryChip,
               !selectedCategory && styles.categoryChipActive,
-              { marginLeft: 24 }
+              { marginLeft: 24 },
             ]}
             onPress={() => setSelectedCategory(null)}
           >
-            <Text style={[
-              styles.categoryText,
-              !selectedCategory && styles.categoryTextActive
-            ]}>
+            <Text
+              style={[
+                styles.categoryText,
+                !selectedCategory && styles.categoryTextActive,
+              ]}
+            >
               All
             </Text>
           </TouchableOpacity>
@@ -189,14 +211,16 @@ export default function HomeScreen() {
               key={category.id}
               style={[
                 styles.categoryChip,
-                selectedCategory === category.id && styles.categoryChipActive
+                selectedCategory === category.id && styles.categoryChipActive,
               ]}
               onPress={() => setSelectedCategory(category.id)}
             >
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category.id && styles.categoryTextActive
-              ]}>
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category.id && styles.categoryTextActive,
+                ]}
+              >
                 {category.name}
               </Text>
             </TouchableOpacity>
@@ -207,17 +231,19 @@ export default function HomeScreen() {
       {/* Meditation List */}
       <View style={[styles.section, { paddingBottom: 100 }]}>
         <Text style={styles.sectionTitle}>
-          {selectedCategory 
-            ? categories.find(c => c.id === selectedCategory)?.name || 'Meditations'
-            : 'All Meditations'
-          }
+          {selectedCategory
+            ? categories.find((c) => c.id === selectedCategory)?.name ||
+              'Meditations'
+            : 'All Meditations'}
         </Text>
         {filteredMeditations.map((meditation) => (
           <MeditationCard
             key={meditation.id}
             meditation={meditation}
             onPress={() => handlePlayMeditation(meditation)}
-            onFavoriteToggle={(event) => handleFavoriteToggle(meditation.id, event)}
+            onFavoriteToggle={(event) =>
+              handleFavoriteToggle(meditation.id, event)
+            }
             isFavorite={user ? isFavorite(meditation.id) : false}
             theme={theme}
             layout={useRowLayout ? 'row' : 'column'}

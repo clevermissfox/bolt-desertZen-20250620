@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from 'react';
 import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
 import type { Meditation } from '@/lib/supabase';
@@ -8,6 +15,8 @@ interface AudioContextType {
   isPlaying: boolean;
   position: number;
   duration: number;
+  volume: number;
+  setVolume: (volume: number) => Promise<void>;
   playMeditation: (meditation: Meditation) => Promise<void>;
   pauseAudio: () => Promise<void>;
   resumeAudio: () => Promise<void>;
@@ -18,12 +27,15 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
-  const [currentMeditation, setCurrentMeditation] = useState<Meditation | null>(null);
+  const [currentMeditation, setCurrentMeditation] = useState<Meditation | null>(
+    null
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [mounted, setMounted] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const [volume, setVolumeState] = useState(1.0);
 
   // Mark component as mounted
   useEffect(() => {
@@ -37,15 +49,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const safeSetState = useCallback((setter: () => void) => {
-    if (mounted) {
-      setter();
-    }
-  }, [mounted]);
+  const safeSetState = useCallback(
+    (setter: () => void) => {
+      if (mounted) {
+        setter();
+      }
+    },
+    [mounted]
+  );
 
   const playMeditation = async (meditation: Meditation) => {
     if (!mounted) return;
-    
+
     try {
       // If same meditation is already loaded, just play it
       if (currentMeditation?.id === meditation.id && soundRef.current) {
@@ -73,7 +88,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       // Create new sound instance with the actual audio URL
       const { sound } = await Audio.Sound.createAsync(
         { uri: meditation.audioUrl },
-        { shouldPlay: true, isLooping: false }
+        { shouldPlay: true, isLooping: false, volume: volume }
       );
 
       if (!mounted) {
@@ -90,7 +105,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       // Set up status updates
       sound.setOnPlaybackStatusUpdate((status) => {
         if (!mounted) return;
-        
+
         if (status.isLoaded) {
           safeSetState(() => {
             setPosition(status.positionMillis || 0);
@@ -99,7 +114,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           });
         }
       });
-
     } catch (error) {
       console.error('Error playing meditation:', error);
     }
@@ -107,7 +121,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const pauseAudio = async () => {
     if (!mounted || !soundRef.current) return;
-    
+
     try {
       await soundRef.current.pauseAsync();
       safeSetState(() => setIsPlaying(false));
@@ -118,7 +132,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const resumeAudio = async () => {
     if (!mounted || !soundRef.current) return;
-    
+
     try {
       await soundRef.current.playAsync();
       safeSetState(() => setIsPlaying(true));
@@ -129,7 +143,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const stopAudio = async () => {
     if (!mounted) return;
-    
+
     try {
       if (soundRef.current) {
         await soundRef.current.stopAsync();
@@ -149,12 +163,23 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const seekTo = async (newPosition: number) => {
     if (!mounted || !soundRef.current) return;
-    
+
     try {
       await soundRef.current.setPositionAsync(newPosition);
       safeSetState(() => setPosition(newPosition));
     } catch (error) {
       console.error('Error seeking audio:', error);
+    }
+  };
+
+  const setVolume = async (newVolume: number) => {
+    if (!mounted || !soundRef.current) return;
+
+    try {
+      await soundRef.current.setVolumeAsync(newVolume);
+      safeSetState(() => setVolumeState(newVolume));
+    } catch (error) {
+      console.error('Error setting volume:', error);
     }
   };
 
@@ -165,6 +190,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         isPlaying,
         position,
         duration,
+        volume,
+        setVolume,
         playMeditation,
         pauseAudio,
         resumeAudio,

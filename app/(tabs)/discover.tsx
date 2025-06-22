@@ -23,7 +23,8 @@ export default function DiscoverScreen() {
   const { theme } = useTheme();
   const { playMeditation } = useAudio();
   const { user, isFavorite, addToFavorites, removeFromFavorites } = useAuth();
-  const { meditations, categories, loading, error, refreshData } = useMeditations();
+  const { meditations, categories, loading, error, refreshData } =
+    useMeditations();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -34,19 +35,24 @@ export default function DiscoverScreen() {
   const styles = createStyles(theme);
 
   // Generate duration options from actual meditation data
-  const durations = Array.from(new Set(meditations.map(m => m.length))).sort((a, b) => {
-    const aNum = parseInt(a);
-    const bNum = parseInt(b);
-    return aNum - bNum;
-  });
+  const durations = Array.from(new Set(meditations.map((m) => m.length))).sort(
+    (a, b) => {
+      const aNum = parseInt(a);
+      const bNum = parseInt(b);
+      return aNum - bNum;
+    }
+  );
 
-  const filteredMeditations = meditations.filter(meditation => {
-    const matchesSearch = meditation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         meditation.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = !selectedCategory || meditation.category === selectedCategory;
-    
-    const matchesDuration = !selectedDuration || meditation.length === selectedDuration;
+  const filteredMeditations = meditations.filter((meditation) => {
+    const matchesSearch =
+      meditation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      meditation.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      !selectedCategory || meditation.category === selectedCategory;
+
+    const matchesDuration =
+      !selectedDuration || meditation.length === selectedDuration;
 
     return matchesSearch && matchesCategory && matchesDuration;
   });
@@ -58,12 +64,12 @@ export default function DiscoverScreen() {
 
   const handleFavoriteToggle = async (meditationId: string, event: any) => {
     event.stopPropagation();
-    
+
     if (!user) {
       router.push('/auth');
       return;
     }
-    
+
     try {
       if (isFavorite(meditationId)) {
         await removeFromFavorites(meditationId);
@@ -132,10 +138,16 @@ export default function DiscoverScreen() {
           />
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, hasActiveFilters && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            hasActiveFilters && styles.filterButtonActive,
+          ]}
           onPress={() => setShowFilters(!showFilters)}
         >
-          <Filter size={20} color={hasActiveFilters ? 'white' : theme.colors.textSecondary} />
+          <Filter
+            size={20}
+            color={hasActiveFilters ? 'white' : theme.colors.textSecondary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -152,16 +164,22 @@ export default function DiscoverScreen() {
                     key={category.id}
                     style={[
                       styles.filterChip,
-                      selectedCategory === category.id && styles.filterChipActive
+                      selectedCategory === category.id &&
+                        styles.filterChipActive,
                     ]}
-                    onPress={() => setSelectedCategory(
-                      selectedCategory === category.id ? null : category.id
-                    )}
+                    onPress={() =>
+                      setSelectedCategory(
+                        selectedCategory === category.id ? null : category.id
+                      )
+                    }
                   >
-                    <Text style={[
-                      styles.filterChipText,
-                      selectedCategory === category.id && styles.filterChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedCategory === category.id &&
+                          styles.filterChipTextActive,
+                      ]}
+                    >
                       {category.name}
                     </Text>
                   </TouchableOpacity>
@@ -178,16 +196,21 @@ export default function DiscoverScreen() {
                     key={duration}
                     style={[
                       styles.filterChip,
-                      selectedDuration === duration && styles.filterChipActive
+                      selectedDuration === duration && styles.filterChipActive,
                     ]}
-                    onPress={() => setSelectedDuration(
-                      selectedDuration === duration ? null : duration
-                    )}
+                    onPress={() =>
+                      setSelectedDuration(
+                        selectedDuration === duration ? null : duration
+                      )
+                    }
                   >
-                    <Text style={[
-                      styles.filterChipText,
-                      selectedDuration === duration && styles.filterChipTextActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedDuration === duration &&
+                          styles.filterChipTextActive,
+                      ]}
+                    >
                       {duration}
                     </Text>
                   </TouchableOpacity>
@@ -197,7 +220,10 @@ export default function DiscoverScreen() {
 
             {/* Clear Filters */}
             {hasActiveFilters && (
-              <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={clearFilters}
+              >
                 <Text style={styles.clearButtonText}>Clear All Filters</Text>
               </TouchableOpacity>
             )}
@@ -206,7 +232,7 @@ export default function DiscoverScreen() {
       )}
 
       {/* Results */}
-      <ScrollView 
+      <ScrollView
         style={styles.resultsContainer}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -215,15 +241,18 @@ export default function DiscoverScreen() {
         }
       >
         <Text style={styles.resultsHeader}>
-          {filteredMeditations.length} meditation{filteredMeditations.length !== 1 ? 's' : ''} found
+          {filteredMeditations.length} meditation
+          {filteredMeditations.length !== 1 ? 's' : ''} found
         </Text>
-        
+
         {filteredMeditations.map((meditation) => (
           <MeditationCard
             key={meditation.id}
             meditation={meditation}
             onPress={() => handlePlayMeditation(meditation)}
-            onFavoriteToggle={(event) => handleFavoriteToggle(meditation.id, event)}
+            onFavoriteToggle={(event) =>
+              handleFavoriteToggle(meditation.id, event)
+            }
             isFavorite={user ? isFavorite(meditation.id) : false}
             theme={theme}
             layout={useRowLayout ? 'row' : 'column'}
@@ -295,6 +324,7 @@ const createStyles = (theme: any) =>
     },
     searchContainer: {
       flexDirection: 'row',
+      alignItems: 'center',
       paddingHorizontal: 24,
       marginBottom: 16,
       gap: 12,
@@ -323,7 +353,7 @@ const createStyles = (theme: any) =>
     filterButton: {
       width: 48,
       height: 48,
-      borderRadius: 20,
+      borderRadius: 15,
       backgroundColor: theme.colors.card,
       justifyContent: 'center',
       alignItems: 'center',

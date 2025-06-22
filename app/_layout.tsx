@@ -68,8 +68,8 @@ function AppContent() {
         <AuthWrapper>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="meditation" />
+            <Stack.Screen name="auth/index" />
+            <Stack.Screen name="meditation/index" />
             <Stack.Screen name="+not-found" />
           </Stack>
           <FloatingAudioPlayer />

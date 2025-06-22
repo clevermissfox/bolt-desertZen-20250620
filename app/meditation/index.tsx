@@ -15,7 +15,17 @@ import Slider from '@react-native-community/slider';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAudio } from '@/contexts/AudioContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Play, Pause, SkipBack, SkipForward, ChevronLeft, Heart, Clock, Volume2, Info } from 'lucide-react-native';
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  ChevronLeft,
+  Heart,
+  Clock,
+  Volume2,
+  Info,
+} from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +36,8 @@ export default function MeditationScreen() {
     isPlaying,
     position,
     duration,
+    volume,
+    setVolume,
     pauseAudio,
     resumeAudio,
     seekTo,
@@ -73,7 +85,7 @@ export default function MeditationScreen() {
       router.push('/auth');
       return;
     }
-    
+
     try {
       if (isFavorite(currentMeditation.id)) {
         await removeFromFavorites(currentMeditation.id);
@@ -106,10 +118,10 @@ export default function MeditationScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Background Image with Overlay */}
-      <Image 
-        source={{ uri: currentMeditation.imageUrl }} 
+      <Image
+        source={{ uri: currentMeditation.imageUrl }}
         style={styles.backgroundImage}
         blurRadius={30}
       />
@@ -123,15 +135,18 @@ export default function MeditationScreen() {
         <TouchableOpacity style={styles.headerButton} onPress={handleClose}>
           <ChevronLeft size={24} color="white" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Now Playing</Text>
-        
-        <TouchableOpacity style={styles.headerButton} onPress={() => setShowDetails(!showDetails)}>
+
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setShowDetails(!showDetails)}
+        >
           <Info size={20} color="white" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -139,13 +154,16 @@ export default function MeditationScreen() {
         {/* Meditation Image */}
         <View style={styles.imageContainer}>
           <View style={styles.imageWrapper}>
-            <Image 
-              source={{ uri: currentMeditation.imageUrl }} 
-              style={[styles.meditationImage, { 
-                width: imageSize, 
-                height: imageSize, 
-                borderRadius: imageSize / 2 
-              }]}
+            <Image
+              source={{ uri: currentMeditation.imageUrl }}
+              style={[
+                styles.meditationImage,
+                {
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
+                },
+              ]}
             />
           </View>
         </View>
@@ -166,7 +184,6 @@ export default function MeditationScreen() {
             minimumTrackTintColor="white"
             maximumTrackTintColor="rgba(255,255,255,0.3)"
             thumbTintColor="white"
-            thumbStyle={styles.sliderThumb}
           />
           <View style={styles.timeContainer}>
             <Text style={styles.timeText}>{formatTime(position)}</Text>
@@ -179,7 +196,7 @@ export default function MeditationScreen() {
           <TouchableOpacity style={styles.skipButton} onPress={handleSkipBack}>
             <SkipBack size={28} color="white" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.playButton} onPress={handlePlayPause}>
             {isPlaying ? (
               <Pause size={36} color="white" fill="white" />
@@ -187,8 +204,11 @@ export default function MeditationScreen() {
               <Play size={36} color="white" fill="white" />
             )}
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkipForward}>
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkipForward}
+          >
             <SkipForward size={28} color="white" />
           </TouchableOpacity>
         </View>
@@ -200,11 +220,11 @@ export default function MeditationScreen() {
             style={styles.volumeSlider}
             minimumValue={0}
             maximumValue={1}
-            value={1}
+            value={volume}
+            onValueChange={setVolume}
             minimumTrackTintColor="white"
             maximumTrackTintColor="rgba(255,255,255,0.3)"
             thumbTintColor="white"
-            thumbStyle={styles.volumeThumb}
           />
         </View>
 
@@ -213,36 +233,67 @@ export default function MeditationScreen() {
           <View style={styles.detailsContainer}>
             <View style={styles.detailsCard}>
               <Text style={styles.detailsTitle}>About this meditation</Text>
-              <Text style={styles.description}>{currentMeditation.description}</Text>
-              
+              <Text style={styles.description}>
+                {currentMeditation.description}
+              </Text>
+
               <View style={styles.metaContainer}>
                 <View style={styles.detailMetaRow}>
                   <View style={styles.detailMetaItem}>
                     <Clock size={16} color="rgba(255,255,255,0.8)" />
                     <Text style={styles.metaLabel}>Duration</Text>
-                    <Text style={styles.metaValue}>{currentMeditation.length}</Text>
+                    <Text style={styles.metaValue}>
+                      {currentMeditation.length}
+                    </Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.detailMetaRow}>
                   <View style={styles.detailMetaItem}>
-                    <View style={[styles.categoryDot, { backgroundColor: theme.colors.accent }]} />
+                    <View
+                      style={[
+                        styles.categoryDot,
+                        { backgroundColor: theme.colors.accent },
+                      ]}
+                    />
                     <Text style={styles.metaLabel}>Category</Text>
-                    <Text style={styles.metaValue}>{formatCategoryName(currentMeditation.category)}</Text>
+                    <Text style={styles.metaValue}>
+                      {formatCategoryName(currentMeditation.category)}
+                    </Text>
                   </View>
                 </View>
 
                 {/* Favorite in Details */}
                 <View style={styles.detailMetaRow}>
-                  <TouchableOpacity style={styles.favoriteDetailRow} onPress={handleFavorite}>
-                    <Heart 
-                      size={16} 
-                      color={isUserFavorite ? theme.colors.accent : "rgba(255,255,255,0.8)"} 
-                      fill={isUserFavorite ? theme.colors.accent : "transparent"} 
+                  <TouchableOpacity
+                    style={styles.favoriteDetailRow}
+                    onPress={handleFavorite}
+                  >
+                    <Heart
+                      size={16}
+                      color={
+                        isUserFavorite
+                          ? theme.colors.accent
+                          : 'rgba(255,255,255,0.8)'
+                      }
+                      fill={
+                        isUserFavorite ? theme.colors.accent : 'transparent'
+                      }
                     />
                     <Text style={styles.metaLabel}>Favorite</Text>
-                    <Text style={[styles.metaValue, { color: isUserFavorite ? theme.colors.accent : "rgba(255,255,255,0.8)" }]}>
-                      {isUserFavorite ? 'Added to favorites' : 'Add to favorites'}
+                    <Text
+                      style={[
+                        styles.metaValue,
+                        {
+                          color: isUserFavorite
+                            ? theme.colors.accent
+                            : 'rgba(255,255,255,0.8)',
+                        },
+                      ]}
+                    >
+                      {isUserFavorite
+                        ? 'Added to favorites'
+                        : 'Add to favorites'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -251,11 +302,10 @@ export default function MeditationScreen() {
               <View style={styles.instructionsContainer}>
                 <Text style={styles.instructionsTitle}>How to use</Text>
                 <Text style={styles.instructionsText}>
-                  • Find a comfortable position{'\n'}
-                  • Close your eyes or soften your gaze{'\n'}
-                  • Follow the guided instructions{'\n'}
-                  • Use the skip buttons to go back/forward 15 seconds{'\n'}
-                  • Adjust volume as needed
+                  • Find a comfortable position{'\n'}• Close your eyes or soften
+                  your gaze{'\n'}• Follow the guided instructions{'\n'}• Use the
+                  skip buttons to go back/forward 15 seconds{'\n'}• Adjust
+                  volume as needed
                 </Text>
               </View>
             </View>
@@ -269,7 +319,7 @@ export default function MeditationScreen() {
 function formatCategoryName(category: string) {
   return category
     .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
