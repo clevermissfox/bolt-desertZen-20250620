@@ -19,11 +19,16 @@ export default function FloatingAudioPlayer() {
   const { currentMeditation, isPlaying, pauseAudio, resumeAudio } = useAudio();
   const router = useRouter();
   const pathname = usePathname();
+  const isTabScreen =
+    pathname === '/' ||
+    pathname === '/discover' ||
+    pathname === '/favorites' ||
+    pathname === '/profile';
 
   const styles = createStyles(theme);
 
   // Don't show if no meditation is playing or if we're on the meditation screen
-  if (!currentMeditation || pathname === '/meditation') {
+  if (!currentMeditation || pathname === '/meditation' || !isPlaying) {
     return null;
   }
 
@@ -41,9 +46,16 @@ export default function FloatingAudioPlayer() {
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handleExpand} activeOpacity={0.8}>
-      <Image source={{ uri: currentMeditation.imageUrl }} style={styles.backgroundImage} />
-      
+    <TouchableOpacity
+      style={[styles.container, isTabScreen ? { bottom: 120 } : { bottom: 60 }]}
+      onPress={handleExpand}
+      activeOpacity={0.8}
+    >
+      <Image
+        source={{ uri: currentMeditation.imageUrl }}
+        style={styles.backgroundImage}
+      />
+
       <LinearGradient
         colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
         style={styles.overlay}
@@ -55,7 +67,7 @@ export default function FloatingAudioPlayer() {
             <Play size={20} color="white" fill="white" />
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.expandButton} onPress={handleExpand}>
           <Maximize2 size={14} color="white" />
         </TouchableOpacity>
@@ -68,10 +80,9 @@ const createStyles = (theme: any) =>
   StyleSheet.create({
     container: {
       position: 'absolute',
-      bottom: 115, // Above tab bar with proper spacing
       right: 20,
-      width: 80,
-      height: 80,
+      width: 90,
+      height: 90,
       borderRadius: 16,
       overflow: 'hidden',
       zIndex: 1000,

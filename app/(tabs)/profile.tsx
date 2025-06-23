@@ -22,6 +22,9 @@ import {
   Target,
   TrendingUp,
   ChevronRight,
+  Info,
+  Database,
+  Code,
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
@@ -31,7 +34,9 @@ export default function ProfileScreen() {
 
   const styles = createStyles(theme);
 
-  const favoriteCount = user ? meditations.filter(m => isFavorite(m.id)).length : 0;
+  const favoriteCount = user
+    ? meditations.filter((m) => isFavorite(m.id)).length
+    : 0;
   const totalMeditationTime = user ? favoriteCount * 15 : 0; // Mock calculation
 
   const handleSignOut = async () => {
@@ -48,11 +53,14 @@ export default function ProfileScreen() {
 
   if (showGuestView) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.guestScrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.guestScrollContent}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
         </View>
-        
+
         <View style={styles.guestSection}>
           <View style={styles.avatarContainer}>
             <User size={32} color={theme.colors.textSecondary} />
@@ -72,7 +80,7 @@ export default function ProfileScreen() {
         {/* Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          
+
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               {isDark ? (
@@ -85,14 +93,43 @@ export default function ProfileScreen() {
             <Switch
               value={isDark}
               onValueChange={toggleTheme}
-              trackColor={{ 
-                false: theme.colors.textSecondary, 
-                true: theme.colors.text 
+              trackColor={{
+                false: theme.colors.textSecondary,
+                true: theme.colors.text,
               }}
               thumbColor={theme.colors.accent}
-              activeThumbColor={theme.colors.accent}
               ios_backgroundColor={theme.colors.border}
             />
+          </View>
+        </View>
+
+        {/* App Information Section - Moved to bottom */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App Information</Text>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <Info size={20} color={theme.colors.accent} />
+              <Text style={styles.infoCardTitle}>Desert Zen Meditations</Text>
+            </View>
+            <Text style={styles.infoDescription}>
+              Desert Zen is for anyone in need of healing, hope, and a gentle
+              reminder that even in the harshest environments, wellness is
+              attainable.
+            </Text>
+
+            <View style={styles.techDetails}>
+              <View style={styles.techItem}>
+                <Code size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.techLabel}>Platform</Text>
+                <Text style={styles.techValue}>Bolt AI</Text>
+              </View>
+              <View style={styles.techItem}>
+                <Database size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.techLabel}>Supabase</Text>
+                <Text style={styles.techValueCode}>tzzslprrcyjzxmbkpmem</Text>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -108,7 +145,9 @@ export default function ProfileScreen() {
       {/* User Info */}
       <View style={styles.userSection}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase()}</Text>
+          <Text style={styles.avatarText}>
+            {user?.name?.charAt(0).toUpperCase()}
+          </Text>
         </View>
         <Text style={styles.userName}>{user?.name}</Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
@@ -163,12 +202,11 @@ export default function ProfileScreen() {
           <Switch
             value={isDark}
             onValueChange={toggleTheme}
-            trackColor={{ 
-              false: theme.colors.textSecondary, 
-              true: theme.colors.text 
+            trackColor={{
+              false: theme.colors.textSecondary,
+              true: theme.colors.text,
             }}
             thumbColor={theme.colors.accent}
-            activeThumbColor={theme.colors.accent}
             ios_backgroundColor={theme.colors.border}
           />
         </View>
@@ -180,6 +218,36 @@ export default function ProfileScreen() {
           <LogOut size={20} color="white" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* App Information Section - Moved to bottom */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App Information</Text>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Info size={20} color={theme.colors.accent} />
+            <Text style={styles.infoCardTitle}>Desert Zen Meditations</Text>
+          </View>
+          <Text style={styles.infoDescription}>
+            Desert Zen is for anyone in need of healing, hope, and a gentle
+            reminder that even in the harshest environments, wellness is
+            attainable.
+          </Text>
+
+          <View style={styles.techDetails}>
+            <View style={styles.techItem}>
+              <Code size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.techLabel}>Platform</Text>
+              <Text style={styles.techValue}>Bolt AI</Text>
+            </View>
+            <View style={styles.techItem}>
+              <Database size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.techLabel}>Supabase</Text>
+              <Text style={styles.techValueCode}>tzzslprrcyjzxmbkpmem</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <View style={{ height: 100 }} />
@@ -319,6 +387,65 @@ const createStyles = (theme: any) =>
       fontFamily: 'Lora-Bold',
       color: theme.colors.text,
       marginBottom: 16,
+    },
+    infoCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 20,
+      elevation: 3,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    },
+    infoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 12,
+    },
+    infoCardTitle: {
+      fontSize: 18,
+      fontFamily: 'Lora-Bold',
+      color: theme.colors.text,
+    },
+    infoDescription: {
+      fontSize: 14,
+      fontFamily: 'Karla-Regular',
+      color: theme.colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+    techDetails: {
+      gap: 12,
+    },
+    techItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    techLabel: {
+      fontSize: 14,
+      fontFamily: 'Karla-Medium',
+      color: theme.colors.textSecondary,
+      flex: 1,
+    },
+    techValue: {
+      fontSize: 14,
+      fontFamily: 'Karla-Medium',
+      color: theme.colors.text,
+      fontWeight: '600',
+    },
+    techValueCode: {
+      fontSize: 12,
+      fontFamily: 'Karla-Medium',
+      color: theme.colors.text,
+      fontWeight: '600',
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      overflow: 'hidden',
     },
     menuItem: {
       flexDirection: 'row',

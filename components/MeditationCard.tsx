@@ -27,14 +27,14 @@ export default function MeditationCard({
   onFavoriteToggle,
   isFavorite,
   theme,
-  layout = 'column'
+  layout = 'column',
 }: MeditationCardProps) {
   const styles = createStyles(theme, layout);
 
   const formatCategoryName = (category: string) => {
     return category
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -42,28 +42,40 @@ export default function MeditationCard({
     return (
       <TouchableOpacity style={styles.cardRow} onPress={onPress}>
         <Image source={{ uri: meditation.imageUrl }} style={styles.imageRow} />
-        
+
         <View style={styles.contentRow}>
           <View style={styles.textContent}>
             <Text style={styles.titleRow}>{meditation.title}</Text>
-            <Text style={styles.descriptionRow}>{meditation.description}</Text>
-            
+            <Text style={styles.descriptionRow} numberOfLines={2}>
+              {meditation.description}
+            </Text>
+
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
                 <Clock size={14} color={theme.colors.textSecondary} />
                 <Text style={styles.metaText}>{meditation.length}</Text>
               </View>
-              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.accent }]}>
-                <Text style={styles.categoryBadgeText}>{formatCategoryName(meditation.category)}</Text>
+              <View
+                style={[
+                  styles.categoryBadge,
+                  { backgroundColor: theme.colors.accent },
+                ]}
+              >
+                <Text style={styles.categoryBadgeText}>
+                  {formatCategoryName(meditation.category)}
+                </Text>
               </View>
             </View>
           </View>
-          
-          <TouchableOpacity style={styles.favoriteButtonRow} onPress={onFavoriteToggle}>
-            <Heart 
-              size={18} 
-              color={isFavorite ? theme.colors.accent : theme.colors.accent} 
-              fill={isFavorite ? theme.colors.accent : 'transparent'} 
+
+          <TouchableOpacity
+            style={styles.favoriteButtonRow}
+            onPress={onFavoriteToggle}
+          >
+            <Heart
+              size={18}
+              color={isFavorite ? theme.colors.accent : theme.colors.accent}
+              fill={isFavorite ? theme.colors.accent : 'transparent'}
             />
           </TouchableOpacity>
         </View>
@@ -75,15 +87,18 @@ export default function MeditationCard({
   return (
     <TouchableOpacity style={styles.cardColumn} onPress={onPress}>
       <Image source={{ uri: meditation.imageUrl }} style={styles.imageColumn} />
-      
-      <TouchableOpacity style={styles.favoriteButtonColumn} onPress={onFavoriteToggle}>
-        <Heart 
-          size={18} 
-          color={isFavorite ? theme.colors.accent : theme.colors.accent} 
-          fill={isFavorite ? theme.colors.accent : 'transparent'} 
+
+      <TouchableOpacity
+        style={styles.favoriteButtonColumn}
+        onPress={onFavoriteToggle}
+      >
+        <Heart
+          size={18}
+          color={isFavorite ? theme.colors.accent : theme.colors.accent}
+          fill={isFavorite ? theme.colors.accent : 'transparent'}
         />
       </TouchableOpacity>
-      
+
       <View style={styles.contentColumn}>
         <Text style={styles.titleColumn}>{meditation.title}</Text>
         <Text style={styles.descriptionColumn}>{meditation.description}</Text>
@@ -92,8 +107,15 @@ export default function MeditationCard({
             <Clock size={14} color={theme.colors.textSecondary} />
             <Text style={styles.metaText}>{meditation.length}</Text>
           </View>
-          <View style={[styles.categoryBadge, { backgroundColor: theme.colors.accent }]}>
-            <Text style={styles.categoryBadgeText}>{formatCategoryName(meditation.category)}</Text>
+          <View
+            style={[
+              styles.categoryBadge,
+              { backgroundColor: theme.colors.accent },
+            ]}
+          >
+            <Text style={styles.categoryBadgeText}>
+              {formatCategoryName(meditation.category)}
+            </Text>
           </View>
         </View>
       </View>
@@ -107,6 +129,8 @@ const createStyles = (theme: any, layout: 'column' | 'row') =>
     cardColumn: {
       backgroundColor: theme.colors.card,
       borderRadius: 20,
+      borderColor: theme.colors.border,
+      borderWidth: 1,
       marginHorizontal: 24,
       marginBottom: 16,
       elevation: 3,
@@ -167,6 +191,8 @@ const createStyles = (theme: any, layout: 'column' | 'row') =>
     cardRow: {
       backgroundColor: theme.colors.card,
       borderRadius: 20,
+      borderColor: theme.colors.border,
+      borderWidth: 1,
       marginHorizontal: 24,
       marginBottom: 16,
       elevation: 3,
@@ -206,7 +232,6 @@ const createStyles = (theme: any, layout: 'column' | 'row') =>
       color: theme.colors.textSecondary,
       lineHeight: 18,
       marginBottom: 8,
-      numberOfLines: 2,
     },
     metaRow: {
       flexDirection: 'row',
