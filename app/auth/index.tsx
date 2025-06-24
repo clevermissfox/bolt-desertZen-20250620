@@ -20,6 +20,7 @@ import {
   EyeOff,
   CircleAlert as AlertCircle,
   CircleCheck as CheckCircle,
+  RefreshCw,
 } from 'lucide-react-native';
 
 export default function AuthScreen() {
@@ -32,23 +33,36 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   const { theme, isDark } = useTheme();
-  const { signIn, signUp, resetPassword, continueAsGuest } = useAuth();
+  const {
+    signIn,
+    signUp,
+    resetPassword,
+    resendConfirmationEmail,
+    continueAsGuest,
+  } = useAuth();
   const router = useRouter();
 
   const handleAuth = async () => {
-    if (!email || !password || (!isLogin && !name)) {
+    // Trim all input values to remove leading/trailing whitespace
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedEmail || !trimmedPassword || (!isLogin && !trimmedName)) {
       setError('Please fill in all fields');
       return;
     }
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(trimmedEmail)) {
       setError('Please enter a valid email address');
       return;
     }
 
-    if (password.length < 6) {
+    if (trimmedPassword.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -56,18 +70,19 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setShowResendConfirmation(false);
 
     try {
       if (isLogin) {
-        await signIn(email, password);
+        await signIn(trimmedEmail, trimmedPassword);
         setSuccess('Successfully signed in!');
         setTimeout(() => {
           router.replace('/(tabs)');
         }, 1000);
       } else {
-        await signUp(email, password, name);
+        await signUp(trimmedEmail, trimmedPassword, trimmedName);
         setSuccess(
-          'Account created successfully! Please check your email on this device for a confirmation link and then sign in.'
+          'Account created successfully! Please check your email for a confirmation link before signing in.'
         );
         // Switch to login mode so user can sign in after confirming email
         setIsLogin(true);
@@ -80,6 +95,7 @@ export default function AuthScreen() {
       // Handle specific error cases with more helpful messages
       let errorMessage =
         error.message || 'Authentication failed. Please try again.';
+      let shouldShowResend = false;
 
       if (
         error.message &&
@@ -87,6 +103,7 @@ export default function AuthScreen() {
       ) {
         errorMessage =
           'Your email address has not been confirmed. Please check your inbox for a verification link and click it to activate your account.';
+        shouldShowResend = true;
       } else if (
         error.message &&
         error.message.toLowerCase().includes('invalid login credentials')
@@ -108,18 +125,21 @@ export default function AuthScreen() {
       }
 
       setError(errorMessage);
+      setShowResendConfirmation(shouldShowResend);
     } finally {
       setLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
       setError('Please enter your email address');
       return;
     }
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(trimmedEmail)) {
       setError('Please enter a valid email address');
       return;
     }
@@ -129,13 +149,43 @@ export default function AuthScreen() {
     setSuccess(null);
 
     try {
-      await resetPassword(email);
+      await resetPassword(trimmedEmail);
       setSuccess('Password reset email sent! Check your inbox.');
       setShowForgotPassword(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setResendingConfirmation(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await resendConfirmationEmail(trimmedEmail);
+      setSuccess(
+        'Confirmation email sent! Please check your inbox and click the verification link.'
+      );
+      setShowResendConfirmation(false);
+    } catch (error: any) {
+      setError(error.message || 'Failed to send confirmation email');
+    } finally {
+      setResendingConfirmation(false);
     }
   };
 
@@ -162,10 +212,6 @@ export default function AuthScreen() {
             <Text style={styles.subtitle}>
               Find peace and tranquility in your daily practice
             </Text>
-            <Text style={styles.hint}>
-              For testing you can sign in with credentials desertxzen@gmail.com
-              password123
-            </Text>
           </View>
 
           <View style={styles.form}>
@@ -181,6 +227,7 @@ export default function AuthScreen() {
                       setIsLogin(true);
                       setError(null);
                       setSuccess(null);
+                      setShowResendConfirmation(false);
                     }}
                   >
                     <Text
@@ -201,6 +248,7 @@ export default function AuthScreen() {
                       setIsLogin(false);
                       setError(null);
                       setSuccess(null);
+                      setShowResendConfirmation(false);
                     }}
                   >
                     <Text
@@ -227,6 +275,29 @@ export default function AuthScreen() {
                   >
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
+                  </View>
+                )}
+
+                {showResendConfirmation && (
+                  <View style={styles.resendContainer}>
+                    <Text style={styles.resendText}>
+                      Didn't receive the confirmation email?
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.resendButton,
+                        resendingConfirmation && styles.resendButtonDisabled,
+                      ]}
+                      onPress={handleResendConfirmation}
+                      disabled={resendingConfirmation}
+                    >
+                      <RefreshCw size={16} color="white" />
+                      <Text style={styles.resendButtonText}>
+                        {resendingConfirmation
+                          ? 'Sending...'
+                          : 'Resend Confirmation Email'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -439,14 +510,6 @@ const createStyles = (theme: any, isDark: boolean) =>
       textAlign: 'center',
       lineHeight: 24,
     },
-    hint: {
-      fontSize: 14,
-      fontFamily: 'Karla-Regular',
-      color: theme.colors.textTertiary,
-      textAlign: 'center',
-      marginTop: 8,
-      marginBottom: 16,
-    },
     form: {
       backgroundColor: theme.colors.card,
       borderRadius: 24,
@@ -506,6 +569,42 @@ const createStyles = (theme: any, isDark: boolean) =>
       fontFamily: 'Karla-Regular',
       color: theme.colors.success,
       lineHeight: 20,
+    },
+    resendContainer: {
+      backgroundColor: `${theme.colors.accent}10`,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    resendText: {
+      fontSize: 14,
+      fontFamily: 'Karla-Regular',
+      color: theme.colors.text,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    resendButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.accent,
+      borderRadius: 16,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      gap: 8,
+      elevation: 2,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+    },
+    resendButtonDisabled: {
+      opacity: 0.6,
+    },
+    resendButtonText: {
+      fontSize: 14,
+      fontFamily: 'Karla-Medium',
+      color: 'white',
     },
     inputContainer: {
       flexDirection: 'row',

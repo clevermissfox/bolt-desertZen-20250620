@@ -5,9 +5,9 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import * as Linking from 'expo-linking';
 
 export interface User {
   id: string;
@@ -24,6 +24,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   continueAsGuest: () => void;
   addToFavorites: (meditationId: string) => Promise<void>;
   removeFromFavorites: (meditationId: string) => Promise<void>;
@@ -268,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Use Linking.createURL to generate platform-appropriate redirect URLs
     // const redirectUrl = Linking.createURL('/auth/confirm');
     const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
-    console.log('Redirect URL for sign up:', redirectUrl);
+    console.log('Generated redirect URL for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -297,6 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Use Linking.createURL to generate platform-appropriate redirect URLs
       const redirectUrl = Linking.createURL('/auth/reset-password');
+      console.log('Generated redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -307,6 +309,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Reset password error:', error);
+      throw error;
+    }
+  };
+
+  const resendConfirmationEmail = async (email: string) => {
+    try {
+      console.log('Resending confirmation email to:', email);
+
+      // Use Linking.createURL to generate platform-appropriate redirect URLs
+      const redirectUrl = Linking.createURL('/auth/confirm');
+      console.log(
+        'Generated redirect URL for resend confirmation:',
+        redirectUrl
+      );
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('Confirmation email resent successfully');
+    } catch (error) {
+      console.error('Resend confirmation email error:', error);
       throw error;
     }
   };
@@ -402,6 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        resendConfirmationEmail,
         continueAsGuest,
         addToFavorites,
         removeFromFavorites,
