@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -45,6 +45,26 @@ export default function AuthScreen() {
     continueAsGuest,
   } = useAuth();
   const router = useRouter();
+  const localSearchParams = useLocalSearchParams();
+
+  // Clear success message when screen comes into focus (e.g., returning from email confirmation)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Clear success message when returning to this screen
+      setSuccess(null);
+      setError(null);
+      setShowResendConfirmation(false);
+    }, [])
+  );
+
+  // New useEffect to handle email confirmation feedback
+  useEffect(() => {
+    if (localSearchParams.emailConfirmed === 'true') {
+      setSuccess('Your email has been confirmed. Please sign in.');
+      // Optionally, remove the param from the URL to prevent showing the message again on subsequent visits
+      router.setParams({ emailConfirmed: undefined }); // This might require a different approach depending on Expo Router version
+    }
+  }, [localSearchParams, router]); // Depend on localSearchParams
 
   const handleAuth = async () => {
     // Trim all input values to remove leading/trailing whitespace
