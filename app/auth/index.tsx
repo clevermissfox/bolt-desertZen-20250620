@@ -12,7 +12,15 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Lock, Eye, EyeOff, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CircleAlert as AlertCircle,
+  CircleCheck as CheckCircle,
+} from 'lucide-react-native';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -48,7 +56,7 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       if (isLogin) {
         await signIn(email, password);
@@ -58,7 +66,9 @@ export default function AuthScreen() {
         }, 1000);
       } else {
         await signUp(email, password, name);
-        setSuccess('Account created successfully! Please check your email for a confirmation link before signing in.');
+        setSuccess(
+          'Account created successfully! Please check your email on this device for a confirmation link and then sign in.'
+        );
         // Switch to login mode so user can sign in after confirming email
         setIsLogin(true);
         // Clear the password field for security
@@ -66,20 +76,37 @@ export default function AuthScreen() {
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      
+
       // Handle specific error cases with more helpful messages
-      let errorMessage = error.message || 'Authentication failed. Please try again.';
-      
-      if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
-        errorMessage = 'Your email address has not been confirmed. Please check your inbox for a verification link and click it to activate your account.';
-      } else if (error.message && error.message.toLowerCase().includes('invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-      } else if (error.message && error.message.toLowerCase().includes('user already registered')) {
-        errorMessage = 'An account with this email already exists. Please sign in instead or use a different email address.';
-      } else if (error.message && error.message.toLowerCase().includes('signup disabled')) {
-        errorMessage = 'New account registration is currently disabled. Please contact support for assistance.';
+      let errorMessage =
+        error.message || 'Authentication failed. Please try again.';
+
+      if (
+        error.message &&
+        error.message.toLowerCase().includes('email not confirmed')
+      ) {
+        errorMessage =
+          'Your email address has not been confirmed. Please check your inbox for a verification link and click it to activate your account.';
+      } else if (
+        error.message &&
+        error.message.toLowerCase().includes('invalid login credentials')
+      ) {
+        errorMessage =
+          'Invalid email or password. Please check your credentials and try again.';
+      } else if (
+        error.message &&
+        error.message.toLowerCase().includes('user already registered')
+      ) {
+        errorMessage =
+          'An account with this email already exists. Please sign in instead or use a different email address.';
+      } else if (
+        error.message &&
+        error.message.toLowerCase().includes('signup disabled')
+      ) {
+        errorMessage =
+          'New account registration is currently disabled. Please contact support for assistance.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -135,6 +162,10 @@ export default function AuthScreen() {
             <Text style={styles.subtitle}>
               Find peace and tranquility in your daily practice
             </Text>
+            <Text style={styles.hint}>
+              For testing you can sign in with credentials desertxzen@gmail.com
+              password123
+            </Text>
           </View>
 
           <View style={styles.form}>
@@ -142,26 +173,42 @@ export default function AuthScreen() {
               <>
                 <View style={styles.toggleContainer}>
                   <TouchableOpacity
-                    style={[styles.toggleButton, isLogin && styles.toggleActive]}
+                    style={[
+                      styles.toggleButton,
+                      isLogin && styles.toggleActive,
+                    ]}
                     onPress={() => {
                       setIsLogin(true);
                       setError(null);
                       setSuccess(null);
                     }}
                   >
-                    <Text style={[styles.toggleText, isLogin && styles.toggleTextActive]}>
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        isLogin && styles.toggleTextActive,
+                      ]}
+                    >
                       Sign In
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.toggleButton, !isLogin && styles.toggleActive]}
+                    style={[
+                      styles.toggleButton,
+                      !isLogin && styles.toggleActive,
+                    ]}
                     onPress={() => {
                       setIsLogin(false);
                       setError(null);
                       setSuccess(null);
                     }}
                   >
-                    <Text style={[styles.toggleText, !isLogin && styles.toggleTextActive]}>
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        !isLogin && styles.toggleTextActive,
+                      ]}
+                    >
                       Sign Up
                     </Text>
                   </TouchableOpacity>
@@ -175,7 +222,9 @@ export default function AuthScreen() {
                 )}
 
                 {success && (
-                  <View style={[styles.messageContainer, styles.successContainer]}>
+                  <View
+                    style={[styles.messageContainer, styles.successContainer]}
+                  >
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
                   </View>
@@ -211,8 +260,8 @@ export default function AuthScreen() {
                     autoCapitalize="none"
                     editable={!loading}
                     // Autofill props for email
-                    textContentType={isLogin ? "username" : "emailAddress"}
-                    autoComplete={isLogin ? "username" : "email"}
+                    textContentType={isLogin ? 'username' : 'emailAddress'}
+                    autoComplete={isLogin ? 'username' : 'email'}
                     autoCorrect={false}
                   />
                 </View>
@@ -228,13 +277,15 @@ export default function AuthScreen() {
                     secureTextEntry={!showPassword}
                     editable={!loading}
                     // Autofill props for password
-                    textContentType={isLogin ? "password" : "newPassword"}
-                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    textContentType={isLogin ? 'password' : 'newPassword'}
+                    autoComplete={isLogin ? 'current-password' : 'new-password'}
                     autoCorrect={false}
                     // Enable password saving prompt
-                    passwordRules={!isLogin ? "minlength: 6;" : undefined}
+                    passwordRules={!isLogin ? 'minlength: 6;' : undefined}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
                     {showPassword ? (
                       <EyeOff size={20} color={theme.colors.textSecondary} />
                     ) : (
@@ -244,27 +295,36 @@ export default function AuthScreen() {
                 </View>
 
                 {isLogin && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.forgotPasswordButton}
                     onPress={() => setShowForgotPassword(true)}
                     disabled={loading}
                   >
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    <Text style={styles.forgotPasswordText}>
+                      Forgot Password?
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity
-                  style={[styles.authButton, loading && styles.authButtonDisabled]}
+                  style={[
+                    styles.authButton,
+                    loading && styles.authButtonDisabled,
+                  ]}
                   onPress={handleAuth}
                   disabled={loading}
                 >
                   <Text style={styles.authButtonText}>
-                    {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+                    {loading
+                      ? 'Please wait...'
+                      : isLogin
+                      ? 'Sign In'
+                      : 'Sign Up'}
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.guestButton} 
+                <TouchableOpacity
+                  style={styles.guestButton}
                   onPress={handleGuestMode}
                   disabled={loading}
                 >
@@ -276,7 +336,8 @@ export default function AuthScreen() {
                 <View style={styles.forgotPasswordHeader}>
                   <Text style={styles.forgotPasswordTitle}>Reset Password</Text>
                   <Text style={styles.forgotPasswordSubtitle}>
-                    Enter your email address and we'll send you a link to reset your password.
+                    Enter your email address and we'll send you a link to reset
+                    your password.
                   </Text>
                 </View>
 
@@ -288,7 +349,9 @@ export default function AuthScreen() {
                 )}
 
                 {success && (
-                  <View style={[styles.messageContainer, styles.successContainer]}>
+                  <View
+                    style={[styles.messageContainer, styles.successContainer]}
+                  >
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
                   </View>
@@ -313,7 +376,10 @@ export default function AuthScreen() {
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.authButton, loading && styles.authButtonDisabled]}
+                  style={[
+                    styles.authButton,
+                    loading && styles.authButtonDisabled,
+                  ]}
                   onPress={handleForgotPassword}
                   disabled={loading}
                 >
@@ -322,7 +388,7 @@ export default function AuthScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => {
                     setShowForgotPassword(false);
@@ -372,6 +438,14 @@ const createStyles = (theme: any, isDark: boolean) =>
       color: theme.colors.textSecondary,
       textAlign: 'center',
       lineHeight: 24,
+    },
+    hint: {
+      fontSize: 14,
+      fontFamily: 'Karla-Regular',
+      color: theme.colors.textTertiary,
+      textAlign: 'center',
+      marginTop: 8,
+      marginBottom: 16,
     },
     form: {
       backgroundColor: theme.colors.card,

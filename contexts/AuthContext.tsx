@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 
 export interface User {
   id: string;
@@ -37,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
       console.log('Loading profile for user:', supabaseUser.id);
-      
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -46,15 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error loading profile:', error);
-        
+
         // If profile doesn't exist, try to create it
         if (error.code === 'PGRST116') {
           console.log('Profile not found, creating new profile...');
-          
-          const userName = supabaseUser.user_metadata?.name || 
-                          supabaseUser.user_metadata?.full_name || 
-                          supabaseUser.email?.split('@')[0] || 'User';
-          
+
+          const userName =
+            supabaseUser.user_metadata?.name ||
+            supabaseUser.user_metadata?.full_name ||
+            supabaseUser.email?.split('@')[0] ||
+            'User';
+
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
@@ -112,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setFavorites(favoritesData?.map(fav => fav.meditation_id) || []);
+      setFavorites(favoritesData?.map((fav) => fav.meditation_id) || []);
     } catch (error) {
       console.error('Error in loadFavorites:', error);
     }
@@ -124,31 +133,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
-        
+
         // Handle URL-based authentication (email confirmation, password reset, etc.)
-        if (typeof window !== 'undefined' && window.location && typeof window.location.search === 'string') {
+        if (
+          typeof window !== 'undefined' &&
+          window.location &&
+          typeof window.location.search === 'string'
+        ) {
           const urlParams = new URLSearchParams(window.location.search);
           const accessToken = urlParams.get('access_token');
           const refreshToken = urlParams.get('refresh_token');
           const type = urlParams.get('type');
-          
+
           if (accessToken && refreshToken) {
             console.log('Found auth tokens in URL, setting session...');
-            
+
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
-            
+
             if (error) {
               console.error('Error setting session from URL:', error);
             } else if (data.session) {
               console.log('Session set from URL successfully');
               // Clear the URL parameters
-              window.history.replaceState({}, document.title, window.location.pathname);
-              
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname
+              );
+
               if (isCancelled) return;
-              
+
               setSession(data.session);
               setIsGuest(false);
               await loadUserProfile(data.session.user);
@@ -157,17 +174,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
-        
+
         // Get existing session
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session: initialSession },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
           console.error('Error getting initial session:', error);
         }
 
         if (isCancelled) return;
 
-        console.log('Initial session:', initialSession?.user?.id || 'No session');
+        console.log(
+          'Initial session:',
+          initialSession?.user?.id || 'No session'
+        );
 
         if (initialSession?.user) {
           setSession(initialSession);
@@ -176,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setLoading(false);
         }
-        
+
         setInitialized(true);
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -195,10 +218,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (isCancelled) return;
 
-      console.log('Auth state changed:', event, newSession?.user?.id || 'No session');
+      console.log(
+        'Auth state changed:',
+        event,
+        newSession?.user?.id || 'No session'
+      );
 
       setSession(newSession);
-      
+
       if (newSession?.user) {
         setIsGuest(false);
         setLoading(true);
@@ -219,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     console.log('Attempting to sign in with email:', email);
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -228,19 +255,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       throw error;
     }
-    
+
     console.log('Sign in successful:', data.user?.id);
     setIsGuest(false);
-    
+
     // The auth state change listener will handle loading the profile
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     console.log('Attempting to sign up with email:', email);
-    
-    // Get the current origin for redirect URLs
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081';
-    
+
+    // Use Linking.createURL to generate platform-appropriate redirect URLs
+    // const redirectUrl = Linking.createURL('/auth/confirm');
+    const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
+    console.log('Redirect URL for sign up:', redirectUrl);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -249,28 +278,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name,
           full_name: name,
         },
-        emailRedirectTo: `${origin}/?type=signup`,
+        emailRedirectTo: redirectUrl,
       },
     });
 
     if (error) {
       throw error;
     }
-    
+
     console.log('Sign up successful:', data.user?.id);
     setIsGuest(false);
-    
+
     // Don't set loading state here - let the auth screen handle the UI
     // The auth state change listener will handle loading the profile if email is auto-confirmed
   };
 
   const resetPassword = async (email: string) => {
     try {
-      // Get the current origin for redirect URLs
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8081';
-      
+      // Use Linking.createURL to generate platform-appropriate redirect URLs
+      const redirectUrl = Linking.createURL('/auth/reset-password');
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${origin}/auth/reset-password`,
+        redirectTo: redirectUrl,
       });
 
       if (error) {
@@ -289,7 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         throw error;
       }
-      
+
       setUser(null);
       setSession(null);
       setFavorites([]);
@@ -313,18 +342,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('favorites')
-        .insert({
-          user_id: user.id,
-          meditation_id: meditationId,
-        });
+      const { error } = await supabase.from('favorites').insert({
+        user_id: user.id,
+        meditation_id: meditationId,
+      });
 
       if (error) {
         throw error;
       }
 
-      setFavorites(prev => [...prev, meditationId]);
+      setFavorites((prev) => [...prev, meditationId]);
     } catch (error) {
       console.error('Error adding to favorites:', error);
       throw error;
@@ -345,16 +372,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      setFavorites(prev => prev.filter(id => id !== meditationId));
+      setFavorites((prev) => prev.filter((id) => id !== meditationId));
     } catch (error) {
       console.error('Error removing from favorites:', error);
       throw error;
     }
   };
 
-  const isFavorite = useCallback((meditationId: string) => {
-    return favorites.includes(meditationId);
-  }, [favorites]);
+  const isFavorite = useCallback(
+    (meditationId: string) => {
+      return favorites.includes(meditationId);
+    },
+    [favorites]
+  );
 
   // Don't render children until auth is initialized
   if (!initialized) {
