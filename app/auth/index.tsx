@@ -106,6 +106,7 @@ export default function AuthScreen() {
       if (localSearchParams.emailConfirmed === 'true') {
         console.log('emailConfirmed is true, setting success message.');
         setSuccess('Your email has been confirmed. Please sign in.');
+        setShowResendConfirmation(false); // Hide resend confirmation when email is confirmed
         // Optionally, remove the param from the URL to prevent showing the message again on subsequent visits
         router.setParams({ emailConfirmed: undefined });
         console.log('router.setParams called to clear emailConfirmed.');
@@ -131,6 +132,14 @@ export default function AuthScreen() {
       if (parsedUrl.queryParams && parsedUrl.queryParams.emailConfirmed === 'true') {
         console.log('Email confirmation detected in URL change');
         setSuccess('Your email has been confirmed. Please sign in.');
+        setShowResendConfirmation(false); // Hide resend confirmation when email is confirmed
+        setError(null); // Clear any existing errors
+        
+        // Clear any previous signup success messages
+        setTimeout(() => {
+          // Ensure we're on the login tab
+          setIsLogin(true);
+        }, 100);
       }
       
       console.log('=== END URL CHANGE ===');
