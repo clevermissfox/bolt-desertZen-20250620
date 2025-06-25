@@ -227,9 +227,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     console.log('📝 Attempting to sign up with email:', email);
 
-    // Use the callback route for email confirmation
-    const redirectUrl = Linking.createURL('/auth/callback?type=signup');
-    console.log('🔗 Generated redirect URL for signup:', redirectUrl);
+    // Use the bridge page for email confirmation
+    const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
+    console.log('🌉 Using bridge page for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -274,9 +274,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Use the callback route for password reset
-      const redirectUrl = Linking.createURL('/auth/callback?type=recovery');
-      console.log('🔗 Generated redirect URL for password reset:', redirectUrl);
+      // Use the bridge page for password reset
+      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
+      console.log('🌉 Using bridge page for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -318,12 +318,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('📧 Resending confirmation email to:', email);
 
-      // Use the callback route for email confirmation
-      const redirectUrl = Linking.createURL('/auth/callback?type=signup');
-      console.log(
-        '🔗 Generated redirect URL for resend confirmation:',
-        redirectUrl
-      );
+      // Use the bridge page for email confirmation
+      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
+      console.log('🌉 Using bridge page for resend confirmation:', redirectUrl);
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
