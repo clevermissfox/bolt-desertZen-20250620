@@ -31,10 +31,14 @@ SplashScreen.preventAutoHideAsync();
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth();
 
+  console.log('🎯 [AuthWrapper] Rendering - loading:', loading);
+
   if (loading) {
+    console.log('⏳ [AuthWrapper] Showing loading screen');
     return <LoadingScreen />;
   }
 
+  console.log('✅ [AuthWrapper] Showing children');
   return <>{children}</>;
 }
 
@@ -54,13 +58,17 @@ function AppContent() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      console.log('🎨 [AppContent] Fonts loaded, hiding splash screen');
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
+    console.log('⏳ [AppContent] Fonts not loaded yet, returning null');
     return null;
   }
+
+  console.log('🚀 [AppContent] Rendering app content');
 
   return (
     <AuthProvider>
@@ -69,6 +77,7 @@ function AppContent() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/index" />
+            <Stack.Screen name="auth/callback" />
             <Stack.Screen name="meditation/index" />
             <Stack.Screen name="+not-found" />
           </Stack>
@@ -83,6 +92,8 @@ function AppContent() {
 
 export default function RootLayout() {
   useFrameworkReady();
+
+  console.log('🏗️ [RootLayout] Rendering root layout');
 
   return (
     <ThemeProvider>
