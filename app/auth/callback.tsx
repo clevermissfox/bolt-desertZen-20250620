@@ -15,7 +15,7 @@ export default function AuthCallbackScreen() {
   const styles = createStyles(theme);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     
     const processCallback = async () => {
       try {
