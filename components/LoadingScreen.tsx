@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function LoadingScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+
+  useEffect(() => {
+    console.log('🔄 [LoadingScreen] LoadingScreen component mounted');
+    return () => {
+      console.log('🗑️ [LoadingScreen] LoadingScreen component unmounted');
+    };
+  }, []);
+
+  console.log('🎬 [LoadingScreen] LoadingScreen rendering...');
 
   return (
     <View style={styles.container}>
