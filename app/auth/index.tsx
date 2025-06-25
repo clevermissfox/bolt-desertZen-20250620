@@ -121,11 +121,11 @@ export default function AuthScreen() {
 
   // Additional useEffect to listen for URL changes while the app is running
   useEffect(() => {
-    const handleUrl = (url: string) => {
+    const handleUrl = (event: { url: string }) => {
       console.log('=== URL CHANGE DETECTED ===');
-      console.log('New URL received:', url);
+      console.log('New URL received:', event.url);
       
-      const parsedUrl = Linking.parse(url);
+      const parsedUrl = Linking.parse(event.url);
       console.log('Parsed new URL:', parsedUrl);
       
       if (parsedUrl.queryParams && parsedUrl.queryParams.emailConfirmed === 'true') {
