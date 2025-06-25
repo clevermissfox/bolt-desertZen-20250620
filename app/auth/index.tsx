@@ -71,8 +71,12 @@ export default function AuthScreen() {
   // Handle email confirmation and password reset from deep links
   useEffect(() => {
     const checkDeepLinkParams = async () => {
+      console.log('🔍 Checking deep link params...');
+      console.log('📋 localSearchParams:', JSON.stringify(localSearchParams, null, 2));
+      
       // Check for email confirmation
       if (localSearchParams.emailConfirmed === 'true') {
+        console.log('✅ Email confirmation detected in localSearchParams');
         setSuccess('Your email has been confirmed. Please sign in.');
         setShowResendConfirmation(false);
         setError(null);
@@ -83,6 +87,8 @@ export default function AuthScreen() {
 
       // Check for password reset - Remove the user requirement
       if (localSearchParams.type === 'recovery') {
+        console.log('🔑 Password reset detected in localSearchParams');
+        console.log('🔑 Setting showSetNewPasswordForm to true');
         setShowSetNewPasswordForm(true);
         setShowForgotPassword(false);
         setError(null);
@@ -93,10 +99,15 @@ export default function AuthScreen() {
       // Check initial URL for deep link parameters
       try {
         const initialUrl = await Linking.getInitialURL();
+        console.log('🌐 Initial URL:', initialUrl);
+        
         if (initialUrl) {
           const parsedUrl = Linking.parse(initialUrl);
+          console.log('🔗 Parsed URL:', JSON.stringify(parsedUrl, null, 2));
+          console.log('❓ Query params:', JSON.stringify(parsedUrl.queryParams, null, 2));
           
           if (parsedUrl.queryParams?.emailConfirmed === 'true') {
+            console.log('✅ Email confirmation detected in initial URL');
             setSuccess('Your email has been confirmed. Please sign in.');
             setShowResendConfirmation(false);
             setError(null);
@@ -105,14 +116,18 @@ export default function AuthScreen() {
           
           // Remove the user requirement here as well
           if (parsedUrl.queryParams?.type === 'recovery') {
+            console.log('🔑 Password reset detected in initial URL');
+            console.log('🔑 Setting showSetNewPasswordForm to true from initial URL');
             setShowSetNewPasswordForm(true);
             setShowForgotPassword(false);
             setError(null);
             setSuccess(null);
           }
+        } else {
+          console.log('❌ No initial URL found');
         }
       } catch (error) {
-        console.error('Error checking initial URL:', error);
+        console.error('❌ Error checking initial URL:', error);
       }
     };
 
@@ -122,9 +137,12 @@ export default function AuthScreen() {
   // Listen for URL changes while app is running
   useEffect(() => {
     const handleUrl = (event: { url: string }) => {
+      console.log('🔗 URL event received:', event.url);
       const parsedUrl = Linking.parse(event.url);
+      console.log('🔗 Parsed URL from event:', JSON.stringify(parsedUrl, null, 2));
       
       if (parsedUrl.queryParams?.emailConfirmed === 'true') {
+        console.log('✅ Email confirmation detected in URL event');
         setSuccess('Your email has been confirmed. Please sign in.');
         setShowResendConfirmation(false);
         setError(null);
@@ -137,6 +155,8 @@ export default function AuthScreen() {
       
       // Remove the user requirement here as well
       if (parsedUrl.queryParams?.type === 'recovery') {
+        console.log('🔑 Password reset detected in URL event');
+        console.log('🔑 Setting showSetNewPasswordForm to true from URL event');
         setShowSetNewPasswordForm(true);
         setShowForgotPassword(false);
         setError(null);
@@ -144,9 +164,11 @@ export default function AuthScreen() {
       }
     };
 
+    console.log('👂 Setting up URL event listener');
     const subscription = Linking.addEventListener('url', handleUrl);
     
     return () => {
+      console.log('🔇 Removing URL event listener');
       subscription?.remove();
     };
   }, []); // Remove user dependency
@@ -351,6 +373,15 @@ export default function AuthScreen() {
   };
 
   const styles = createStyles(theme, isDark);
+
+  // Add logging for form state
+  console.log('🎭 Current form state:', {
+    showSetNewPasswordForm,
+    showForgotPassword,
+    isLogin,
+    hasUser: !!user,
+    localSearchParams: JSON.stringify(localSearchParams)
+  });
 
   return (
     <View style={styles.container}>

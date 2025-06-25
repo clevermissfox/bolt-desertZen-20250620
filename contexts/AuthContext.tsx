@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        console.log('🚀 Initializing auth...');
 
         // Handle URL-based authentication (email confirmation, password reset, etc.)
         if (
@@ -147,8 +147,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const refreshToken = urlParams.get('refresh_token');
           const type = urlParams.get('type');
 
+          console.log('🔍 URL params found:', { 
+            hasAccessToken: !!accessToken, 
+            hasRefreshToken: !!refreshToken, 
+            type 
+          });
+
           if (accessToken && refreshToken) {
-            console.log('Found auth tokens in URL, setting session...');
+            console.log('🔑 Found auth tokens in URL, setting session...');
 
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
@@ -156,9 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (error) {
-              console.error('Error setting session from URL:', error);
+              console.error('❌ Error setting session from URL:', error);
             } else if (data.session) {
-              console.log('Session set from URL successfully');
+              console.log('✅ Session set from URL successfully');
               // Clear the URL parameters
               window.history.replaceState(
                 {},
@@ -184,13 +190,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('Error getting initial session:', error);
+          console.error('❌ Error getting initial session:', error);
         }
 
         if (isCancelled) return;
 
         console.log(
-          'Initial session:',
+          '📋 Initial session:',
           initialSession?.user?.id || 'No session'
         );
 
@@ -204,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setInitialized(true);
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('❌ Error initializing auth:', error);
         if (!isCancelled) {
           setLoading(false);
           setInitialized(true);
@@ -221,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isCancelled) return;
 
       console.log(
-        'Auth state changed:',
+        '🔄 Auth state changed:',
         event,
         newSession?.user?.id || 'No session'
       );
@@ -247,7 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadUserProfile]);
 
   const signIn = async (email: string, password: string) => {
-    console.log('Attempting to sign in with email:', email);
+    console.log('🔐 Attempting to sign in with email:', email);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -258,19 +264,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    console.log('Sign in successful:', data.user?.id);
+    console.log('✅ Sign in successful:', data.user?.id);
     setIsGuest(false);
 
     // The auth state change listener will handle loading the profile
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    console.log('Attempting to sign up with email:', email);
+    console.log('📝 Attempting to sign up with email:', email);
 
     // Use Linking.createURL to generate platform-appropriate redirect URLs
     // const redirectUrl = Linking.createURL('/auth/confirm');
     const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
-    console.log('Generated redirect URL for signup:', redirectUrl);
+    console.log('🔗 Generated redirect URL for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -306,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // This is the normal flow for new users
     }
 
-    console.log('Sign up successful:', data.user?.id);
+    console.log('✅ Sign up successful:', data.user?.id);
     setIsGuest(false);
 
     // Don't set loading state here - let the auth screen handle the UI
@@ -317,7 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Use Linking.createURL to generate platform-appropriate redirect URLs
       const redirectUrl = Linking.createURL('/auth?type=recovery');
-      console.log('Generated redirect URL for password reset:', redirectUrl);
+      console.log('🔗 Generated redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -326,40 +332,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         throw error;
       }
+
+      console.log('📧 Password reset email sent successfully');
     } catch (error) {
-      console.error('Reset password error:', error);
+      console.error('❌ Reset password error:', error);
       throw error;
     }
   };
 
   const updateUserPassword = async (password: string) => {
     try {
-      console.log('Updating user password...');
+      console.log('🔑 Updating user password...');
 
       const { data, error } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (error) {
+        console.error('❌ Error updating password:', error);
         throw error;
       }
 
-      console.log('Password updated successfully');
+      console.log('✅ Password updated successfully');
       // Don't return data - function should return void
     } catch (error) {
-      console.error('Update password error:', error);
+      console.error('❌ Update password error:', error);
       throw error;
     }
   };
 
   const resendConfirmationEmail = async (email: string) => {
     try {
-      console.log('Resending confirmation email to:', email);
+      console.log('📧 Resending confirmation email to:', email);
 
       // Use Linking.createURL to generate platform-appropriate redirect URLs
       const redirectUrl = Linking.createURL('/auth/confirm');
       console.log(
-        'Generated redirect URL for resend confirmation:',
+        '🔗 Generated redirect URL for resend confirmation:',
         redirectUrl
       );
 
@@ -375,16 +384,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      console.log('Confirmation email resent successfully');
+      console.log('✅ Confirmation email resent successfully');
     } catch (error) {
-      console.error('Resend confirmation email error:', error);
+      console.error('❌ Resend confirmation email error:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('Signing out...');
+      console.log('👋 Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
@@ -395,13 +404,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFavorites([]);
       setIsGuest(false);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('❌ Error signing out:', error);
       throw error;
     }
   };
 
   const continueAsGuest = () => {
-    console.log('Continuing as guest...');
+    console.log('👤 Continuing as guest...');
     setIsGuest(true);
     setUser(null);
     setSession(null);
