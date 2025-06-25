@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
@@ -43,38 +44,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(false);
+  
+  // Use refs to prevent infinite loops
+  const initializingRef = useRef(false);
+  const profileLoadingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Enhanced logging for loading state changes with stack trace
   const setLoadingWithLog = useCallback((newLoading: boolean, context: string) => {
-    const currentLoading = loading;
-    console.log(`🔄 [AuthContext] Loading state change: ${currentLoading} → ${newLoading} - Context: ${context}`);
-    
-    if (newLoading === true) {
-      console.log(`⚠️ [AuthContext] SETTING LOADING TO TRUE - This might cause the loading screen!`);
-      console.log(`📍 [AuthContext] Stack trace for loading=true:`, new Error().stack?.split('\n').slice(1, 6).join('\n'));
-    } else {
-      console.log(`✅ [AuthContext] Setting loading to false - should hide loading screen`);
+    if (!mountedRef.current) {
+      console.log('🚫 [AuthContext] Component unmounted, skipping loading state change');
+      return;
     }
+
+    setLoading(currentLoading => {
+      console.log(`🔄 [AuthContext] Loading state change: ${currentLoading} → ${newLoading} - Context: ${context}`);
+      
+      if (newLoading === true) {
+        console.log(`⚠️ [AuthContext] SETTING LOADING TO TRUE - This might cause the loading screen!`);
+        console.log(`📍 [AuthContext] Stack trace for loading=true:`, new Error().stack?.split('\n').slice(1, 6).join('\n'));
+      } else {
+        console.log(`✅ [AuthContext] Setting loading to false - should hide loading screen`);
+      }
+      
+      return newLoading;
+    });
+  }, []);
+
+  const loadFavorites = useCallback(async (userId: string) => {
+    if (!mountedRef.current) return;
     
-    setLoading(newLoading);
-  }, [loading]);
+    try {
+      console.log('❤️ [AuthContext] Loading favorites for user:', userId);
+      const { data: favoritesData, error } = await supabase
+        .from('favorites')
+        .select('meditation_id')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('❌ [AuthContext] Error loading favorites:', error);
+        return;
+      }
+
+      if (mountedRef.current) {
+        console.log('✅ [AuthContext] Favorites loaded:', favoritesData?.length || 0, 'items');
+        setFavorites(favoritesData?.map((fav) => fav.meditation_id) || []);
+      }
+    } catch (error) {
+      console.error('❌ [AuthContext] Error in loadFavorites:', error);
+    }
+  }, []);
 
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
-    if (profileLoading) {
-      console.log('⏳ [AuthContext] Profile already loading, skipping...');
+    if (!mountedRef.current || profileLoadingRef.current) {
+      console.log('⏳ [AuthContext] Profile loading skipped - unmounted or already loading');
       return;
     }
 
     try {
       console.log('👤 [AuthContext] Starting loadUserProfile for user:', supabaseUser.id);
-      setProfileLoading(true);
+      profileLoadingRef.current = true;
 
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
+
+      if (!mountedRef.current) {
+        console.log('🚫 [AuthContext] Component unmounted during profile load');
+        return;
+      }
 
       if (error) {
         console.error('❌ [AuthContext] Error loading profile:', error);
@@ -98,6 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
             .select()
             .single();
+
+          if (!mountedRef.current) {
+            console.log('🚫 [AuthContext] Component unmounted during profile creation');
+            return;
+          }
 
           if (createError) {
             console.error('❌ [AuthContext] Error creating profile:', createError);
@@ -126,39 +171,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('❌ [AuthContext] Error in loadUserProfile:', error);
     } finally {
-      console.log('🏁 [AuthContext] loadUserProfile finally block - setting loading to false');
-      setProfileLoading(false);
-      setLoadingWithLog(false, 'loadUserProfile - finally block');
-    }
-  }, [setLoadingWithLog, profileLoading]);
-
-  const loadFavorites = useCallback(async (userId: string) => {
-    try {
-      console.log('❤️ [AuthContext] Loading favorites for user:', userId);
-      const { data: favoritesData, error } = await supabase
-        .from('favorites')
-        .select('meditation_id')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('❌ [AuthContext] Error loading favorites:', error);
-        return;
+      profileLoadingRef.current = false;
+      if (mountedRef.current) {
+        console.log('🏁 [AuthContext] loadUserProfile finally block - setting loading to false');
+        setLoadingWithLog(false, 'loadUserProfile - finally block');
       }
-
-      console.log('✅ [AuthContext] Favorites loaded:', favoritesData?.length || 0, 'items');
-      setFavorites(favoritesData?.map((fav) => fav.meditation_id) || []);
-    } catch (error) {
-      console.error('❌ [AuthContext] Error in loadFavorites:', error);
     }
-  }, []);
+  }, [setLoadingWithLog, loadFavorites]);
 
+  // Stable auth initialization that only runs once
   useEffect(() => {
     let isCancelled = false;
     let authStateSubscription: any = null;
 
     const initializeAuth = async () => {
+      if (initializingRef.current || !mountedRef.current) {
+        console.log('🚫 [AuthContext] Auth already initializing or component unmounted');
+        return;
+      }
+
       try {
         console.log('🚀 [AuthContext] Initializing auth...');
+        initializingRef.current = true;
         setLoadingWithLog(true, 'initializeAuth - start');
 
         // Get existing session
@@ -171,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('❌ [AuthContext] Error getting initial session:', error);
         }
 
-        if (isCancelled) {
+        if (isCancelled || !mountedRef.current) {
           console.log('🚫 [AuthContext] initializeAuth cancelled after getSession');
           return;
         }
@@ -191,14 +225,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoadingWithLog(false, 'initializeAuth - no initial session');
         }
 
-        console.log('✅ [AuthContext] Setting initialized to true');
-        setInitialized(true);
+        if (mountedRef.current) {
+          console.log('✅ [AuthContext] Setting initialized to true');
+          setInitialized(true);
+        }
       } catch (error) {
         console.error('❌ [AuthContext] Error initializing auth:', error);
-        if (!isCancelled) {
+        if (!isCancelled && mountedRef.current) {
           setLoadingWithLog(false, 'initializeAuth - error');
           setInitialized(true);
         }
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -208,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-        if (isCancelled) {
+        if (isCancelled || !mountedRef.current) {
           console.log('🚫 [AuthContext] onAuthStateChange cancelled');
           return;
         }
@@ -266,7 +304,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('🔑 [AuthContext] Password recovery event - EXPLICITLY NOT setting loading state');
             setSession(newSession);
             // CRITICAL: Don't set loading for password recovery events
-            // This was causing the loading screen to appear during password reset
             console.log('🚫 [AuthContext] Skipping loading state change for PASSWORD_RECOVERY');
             break;
 
@@ -302,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize auth and set up listener
     initializeAuth().then(() => {
-      if (!isCancelled) {
+      if (!isCancelled && mountedRef.current) {
         setupAuthListener();
       }
     });
@@ -310,11 +347,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       console.log('🧹 [AuthContext] Cleanup - cancelling auth initialization');
       isCancelled = true;
+      initializingRef.current = false;
+      profileLoadingRef.current = false;
       if (authStateSubscription) {
         authStateSubscription.unsubscribe();
       }
     };
-  }, [loadUserProfile, setLoadingWithLog, user]);
+  }, []); // CRITICAL: Empty dependency array to prevent infinite loops
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      console.log('🧹 [AuthContext] Component unmounting');
+      mountedRef.current = false;
+    };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔐 [AuthContext] Attempting to sign in with email:', email);
@@ -405,12 +453,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // CRITICAL: Force loading state to false immediately after password reset
       console.log('🔄 [AuthContext] FORCE setting loading to false after password reset');
       setLoadingWithLog(false, 'resetPassword - force completed');
-      
-      // Add a small delay and check again to ensure it sticks
-      setTimeout(() => {
-        console.log('🔄 [AuthContext] Double-checking loading state after delay...');
-        setLoadingWithLog(false, 'resetPassword - delayed check');
-      }, 100);
       
     } catch (error) {
       console.error('❌ [AuthContext] Reset password error:', error);
@@ -553,7 +595,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  console.log('🎯 [AuthContext] Rendering children - loading:', loading, 'user:', user?.id || 'none', 'isGuest:', isGuest, 'profileLoading:', profileLoading);
+  console.log('🎯 [AuthContext] Rendering children - loading:', loading, 'user:', user?.id || 'none', 'isGuest:', isGuest);
 
   return (
     <AuthContext.Provider
