@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
-      console.log('Loading profile for user:', supabaseUser.id);
+      console.log('👤 Loading profile for user:', supabaseUser.id);
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -55,11 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error loading profile:', error);
+        console.error('❌ Error loading profile:', error);
 
         // If profile doesn't exist, try to create it
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile...');
+          console.log('🔧 Profile not found, creating new profile...');
 
           const userName =
             supabaseUser.user_metadata?.name ||
@@ -78,13 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (createError) {
-            console.error('Error creating profile:', createError);
+            console.error('❌ Error creating profile:', createError);
             setLoading(false);
             return;
           }
 
           if (newProfile) {
-            console.log('Profile created successfully:', newProfile);
+            console.log('✅ Profile created successfully:', newProfile);
             setUser({
               id: newProfile.id,
               email: newProfile.email,
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } else if (profile) {
-        console.log('Profile loaded successfully:', profile);
+        console.log('✅ Profile loaded successfully:', profile);
         setUser({
           id: profile.id,
           email: profile.email,
@@ -106,8 +106,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadFavorites(profile.id);
       }
     } catch (error) {
-      console.error('Error in loadUserProfile:', error);
+      console.error('❌ Error in loadUserProfile:', error);
     } finally {
+      // Always set loading to false when profile loading is complete
       setLoading(false);
     }
   }, []);
@@ -120,13 +121,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error loading favorites:', error);
+        console.error('❌ Error loading favorites:', error);
         return;
       }
 
       setFavorites(favoritesData?.map((fav) => fav.meditation_id) || []);
     } catch (error) {
-      console.error('Error in loadFavorites:', error);
+      console.error('❌ Error in loadFavorites:', error);
     }
   }, []);
 
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🚀 Initializing auth...');
 
-        // Get existing session (don't handle URL params here anymore)
+        // Get existing session
         const {
           data: { session: initialSession },
           error,
@@ -157,8 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (initialSession?.user) {
           setSession(initialSession);
           setIsGuest(false);
+          // Don't set loading to false here - let loadUserProfile handle it
           await loadUserProfile(initialSession.user);
         } else {
+          // No session found, stop loading
           setLoading(false);
         }
 
@@ -190,9 +193,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (newSession?.user) {
         setIsGuest(false);
+        // Set loading to true when starting to load profile
         setLoading(true);
         await loadUserProfile(newSession.user);
       } else {
+        // User signed out or no session
         setUser(null);
         setFavorites([]);
         setLoading(false);
@@ -353,6 +358,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setFavorites([]);
       setIsGuest(false);
+      setLoading(false); // Ensure loading is false after sign out
     } catch (error) {
       console.error('❌ Error signing out:', error);
       throw error;
@@ -365,7 +371,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setFavorites([]);
-    setLoading(false);
+    setLoading(false); // Ensure loading is false for guest mode
   };
 
   const addToFavorites = async (meditationId: string) => {
