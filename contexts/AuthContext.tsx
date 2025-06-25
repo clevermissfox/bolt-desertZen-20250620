@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
@@ -321,8 +322,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Use Linking.createURL to generate platform-appropriate redirect URLs
-      const redirectUrl = Linking.createURL('/auth?type=recovery');
+      // Create different redirect URLs based on environment
+      let redirectUrl: string;
+      
+      if (__DEV__ || Platform.OS === 'web') {
+        // For development, use a web URL that can redirect back to the app
+        redirectUrl = 'https://desert-zenmeditations.com/reset-password/';
+        console.log('🌐 Using web redirect URL for development:', redirectUrl);
+      } else {
+        // For production builds, use the app scheme
+        redirectUrl = Linking.createURL('/auth?type=recovery');
+        console.log('📱 Using app scheme redirect URL for production:', redirectUrl);
+      }
+
       console.log('🔗 Generated redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

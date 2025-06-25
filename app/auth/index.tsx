@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -173,6 +174,32 @@ export default function AuthScreen() {
     };
   }, []); // Remove user dependency
 
+  // Add a manual test button for development
+  const handleManualPasswordReset = () => {
+    if (__DEV__) {
+      Alert.alert(
+        'Manual Password Reset Test',
+        'This will simulate receiving a password reset link. Use this for testing in development.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Test Reset',
+            onPress: () => {
+              console.log('🧪 Manual password reset test triggered');
+              setShowSetNewPasswordForm(true);
+              setShowForgotPassword(false);
+              setError(null);
+              setSuccess(null);
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const handleAuth = async () => {
     // Trim all input values to remove leading/trailing whitespace
     const trimmedEmail = email.trim();
@@ -286,7 +313,11 @@ export default function AuthScreen() {
 
     try {
       await resetPassword(trimmedEmail);
-      setSuccess('Password reset email sent! Check your inbox.');
+      if (__DEV__) {
+        setSuccess('Password reset email sent! For development testing, you can also use the "Test Reset" button below.');
+      } else {
+        setSuccess('Password reset email sent! Check your inbox.');
+      }
       setShowForgotPassword(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send reset email');
@@ -688,6 +719,16 @@ export default function AuthScreen() {
                 >
                   <Text style={styles.guestButtonText}>Continue as Guest</Text>
                 </TouchableOpacity>
+
+                {/* Development test button */}
+                {__DEV__ && (
+                  <TouchableOpacity
+                    style={styles.testButton}
+                    onPress={handleManualPasswordReset}
+                  >
+                    <Text style={styles.testButtonText}>Test Password Reset (Dev Only)</Text>
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               <>
@@ -757,6 +798,16 @@ export default function AuthScreen() {
                 >
                   <Text style={styles.backButtonText}>Back to Sign In</Text>
                 </TouchableOpacity>
+
+                {/* Development test button for forgot password screen too */}
+                {__DEV__ && (
+                  <TouchableOpacity
+                    style={styles.testButton}
+                    onPress={handleManualPasswordReset}
+                  >
+                    <Text style={styles.testButtonText}>Test Password Reset (Dev Only)</Text>
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>
@@ -950,6 +1001,18 @@ const createStyles = (theme: any, isDark: boolean) =>
     guestButtonText: {
       color: isDark ? '#ffffff' : theme.colors.accent,
       fontSize: 16,
+      fontFamily: 'Karla-Medium',
+    },
+    testButton: {
+      alignItems: 'center',
+      paddingVertical: 12,
+      marginTop: 8,
+      backgroundColor: theme.colors.warning,
+      borderRadius: 12,
+    },
+    testButtonText: {
+      color: '#000000',
+      fontSize: 14,
       fontFamily: 'Karla-Medium',
     },
     forgotPasswordHeader: {
