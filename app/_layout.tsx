@@ -57,14 +57,31 @@ function AppContent() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      console.log('🎨 [AppContent] Fonts loaded, hiding splash screen');
-      SplashScreen.hideAsync();
-    }
+    const hideSplashScreen = async () => {
+      if (fontsLoaded || fontError) {
+        console.log('🎨 [AppContent] Fonts loaded, hiding splash screen');
+        try {
+          // Add a small delay to ensure everything is ready
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await SplashScreen.hideAsync();
+          console.log('✅ [AppContent] Splash screen hidden successfully');
+        } catch (error) {
+          console.error('❌ [AppContent] Error hiding splash screen:', error);
+          // Force hide splash screen even if there's an error
+          try {
+            await SplashScreen.hideAsync();
+          } catch (secondError) {
+            console.error('❌ [AppContent] Second attempt to hide splash screen failed:', secondError);
+          }
+        }
+      }
+    };
+
+    hideSplashScreen();
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
-    console.log('⏳ [AppContent] Fonts not loaded yet, returning null');
+    console.log('⏳ [AppContent] Fonts not loaded yet, keeping splash screen visible');
     return null;
   }
 
