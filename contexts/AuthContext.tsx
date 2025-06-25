@@ -79,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (createError) {
             console.error('❌ Error creating profile:', createError);
-            setLoading(false);
             return;
           }
 
@@ -92,9 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             await loadFavorites(newProfile.id);
           }
-        } else {
-          setLoading(false);
-          return;
         }
       } else if (profile) {
         console.log('✅ Profile loaded successfully:', profile);
@@ -108,7 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('❌ Error in loadUserProfile:', error);
     } finally {
-      // Always set loading to false when profile loading is complete
+      // CRITICAL: Always set loading to false when profile loading is complete
+      console.log('🏁 Profile loading complete, setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -158,10 +155,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (initialSession?.user) {
           setSession(initialSession);
           setIsGuest(false);
-          // Don't set loading to false here - let loadUserProfile handle it
+          // loadUserProfile will handle setting loading to false
           await loadUserProfile(initialSession.user);
         } else {
-          // No session found, stop loading
+          // No session found, stop loading immediately
+          console.log('🚫 No initial session, stopping loading');
           setLoading(false);
         }
 
@@ -193,11 +191,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (newSession?.user) {
         setIsGuest(false);
-        // Set loading to true when starting to load profile
-        setLoading(true);
-        await loadUserProfile(newSession.user);
+        // Only set loading to true if we don't already have a user
+        // This prevents unnecessary loading states during session refreshes
+        if (!user || user.id !== newSession.user.id) {
+          console.log('🔄 Loading profile for new/different user');
+          setLoading(true);
+          await loadUserProfile(newSession.user);
+        } else {
+          console.log('👤 Same user, skipping profile reload');
+        }
       } else {
         // User signed out or no session
+        console.log('👋 No session, clearing user data');
         setUser(null);
         setFavorites([]);
         setLoading(false);
@@ -209,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isCancelled = true;
       subscription.unsubscribe();
     };
-  }, [loadUserProfile]);
+  }, [loadUserProfile, user]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔐 Attempting to sign in with email:', email);
@@ -359,6 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFavorites([]);
       setIsGuest(false);
       setLoading(false); // Ensure loading is false after sign out
+      console.log('✅ Sign out complete');
     } catch (error) {
       console.error('❌ Error signing out:', error);
       throw error;
