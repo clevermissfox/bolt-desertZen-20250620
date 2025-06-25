@@ -15,10 +15,19 @@ export default function AuthCallbackScreen() {
   const styles = createStyles(theme);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const processCallback = async () => {
       try {
         console.log('🔄 Processing auth callback...');
         console.log('📋 Local search params:', JSON.stringify(localSearchParams, null, 2));
+
+        // Set a maximum timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          console.log('⏰ Callback processing timeout, redirecting to auth');
+          setMessage('Taking longer than expected. Redirecting...');
+          router.replace('/auth');
+        }, 15000); // 15 second timeout
 
         // Get URL parameters from multiple sources
         let urlParams: Record<string, string> = {};
@@ -69,6 +78,7 @@ export default function AuthCallbackScreen() {
         if (error) {
           console.error('❌ Auth callback error:', error, error_description);
           setMessage('Authentication failed. Redirecting...');
+          clearTimeout(timeoutId);
           setTimeout(() => {
             router.replace({
               pathname: '/auth',
@@ -91,6 +101,7 @@ export default function AuthCallbackScreen() {
           if (sessionError) {
             console.error('❌ Error setting session:', sessionError);
             setMessage('Session error. Redirecting...');
+            clearTimeout(timeoutId);
             setTimeout(() => {
               router.replace({
                 pathname: '/auth',
@@ -102,6 +113,7 @@ export default function AuthCallbackScreen() {
 
           if (data.session) {
             console.log('✅ Session established successfully');
+            clearTimeout(timeoutId);
             
             // Route based on type parameter
             if (type === 'recovery') {
@@ -132,6 +144,7 @@ export default function AuthCallbackScreen() {
           } else {
             console.error('❌ No session data received');
             setMessage('Authentication failed. Redirecting...');
+            clearTimeout(timeoutId);
             setTimeout(() => {
               router.replace({
                 pathname: '/auth',
@@ -143,6 +156,7 @@ export default function AuthCallbackScreen() {
           // Handle email confirmation without tokens (some flows)
           console.log('✅ Email confirmation detected without tokens');
           setMessage('Email confirmed. Redirecting...');
+          clearTimeout(timeoutId);
           setTimeout(() => {
             router.replace({
               pathname: '/auth',
@@ -152,6 +166,7 @@ export default function AuthCallbackScreen() {
         } else {
           console.log('❓ No tokens or type found, redirecting to auth');
           setMessage('Redirecting to authentication...');
+          clearTimeout(timeoutId);
           setTimeout(() => {
             router.replace('/auth');
           }, 1000);
@@ -159,6 +174,7 @@ export default function AuthCallbackScreen() {
       } catch (error) {
         console.error('❌ Error in auth callback:', error);
         setMessage('An error occurred. Redirecting...');
+        clearTimeout(timeoutId);
         setTimeout(() => {
           router.replace({
             pathname: '/auth',
@@ -171,6 +187,13 @@ export default function AuthCallbackScreen() {
     };
 
     processCallback();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [localSearchParams, router]);
 
   return (
