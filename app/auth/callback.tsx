@@ -20,7 +20,7 @@ export default function AuthCallbackScreen() {
         console.log('🔄 Processing auth callback...');
         console.log('📋 Local search params:', JSON.stringify(localSearchParams, null, 2));
 
-        // Get URL parameters from both localSearchParams and initial URL
+        // Get URL parameters from multiple sources
         let urlParams: Record<string, string> = {};
         
         // First, check localSearchParams
@@ -89,7 +89,7 @@ export default function AuthCallbackScreen() {
           if (data.session) {
             console.log('✅ Session established successfully');
             
-            // Handle different types of authentication
+            // Route based on type parameter
             if (type === 'recovery') {
               console.log('🔑 Password recovery flow detected');
               setMessage('Password reset verified. Redirecting...');
@@ -100,7 +100,7 @@ export default function AuthCallbackScreen() {
               console.log('✅ Email confirmation flow detected');
               setMessage('Email confirmed successfully. Redirecting...');
               setTimeout(() => {
-                router.replace('/auth?emailConfirmed=true');
+                router.replace('/auth?type=signup');
               }, 1500);
             } else {
               console.log('✅ General authentication flow');
@@ -121,7 +121,7 @@ export default function AuthCallbackScreen() {
           console.log('✅ Email confirmation detected without tokens');
           setMessage('Email confirmed. Redirecting...');
           setTimeout(() => {
-            router.replace('/auth?emailConfirmed=true');
+            router.replace('/auth?type=signup');
           }, 1500);
         } else {
           console.log('❓ No tokens or type found, redirecting to auth');

@@ -71,18 +71,17 @@ export default function AuthScreen() {
     console.log('🔍 Checking auth params...');
     console.log('📋 localSearchParams:', JSON.stringify(localSearchParams, null, 2));
 
-    // Handle email confirmation success
-    if (localSearchParams.emailConfirmed === 'true') {
-      console.log('✅ Email confirmation detected');
+    // Handle different types based on the type parameter
+    if (localSearchParams.type === 'signup') {
+      console.log('✅ Email confirmation success detected');
       setSuccess('Your email has been confirmed. Please sign in.');
       setShowResendConfirmation(false);
       setError(null);
       setIsLogin(true);
-      router.setParams({ emailConfirmed: undefined });
+      router.setParams({ type: undefined });
       return;
     }
 
-    // Handle password reset flow
     if (localSearchParams.type === 'recovery') {
       console.log('🔑 Password reset flow detected');
       setShowSetNewPasswordForm(true);
