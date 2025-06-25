@@ -38,18 +38,7 @@ export default function AuthCallbackScreen() {
             console.log('🌐 Initial URL:', initialUrl);
             const parsedUrl = Linking.parse(initialUrl);
             if (parsedUrl.queryParams) {
-              // Safely convert queryParams to string values only
-              Object.entries(parsedUrl.queryParams).forEach(([key, value]) => {
-                if (typeof value === 'string') {
-                  urlParams[key] = value;
-                } else if (Array.isArray(value) && value.length > 0) {
-                  // Take the first value if it's an array
-                  urlParams[key] = String(value[0]);
-                } else if (value !== undefined) {
-                  // Convert other types to string
-                  urlParams[key] = String(value);
-                }
-              });
+              urlParams = { ...urlParams, ...parsedUrl.queryParams };
             }
           }
         } catch (error) {
@@ -73,11 +62,7 @@ export default function AuthCallbackScreen() {
           console.error('❌ Auth callback error:', error, error_description);
           setMessage('Authentication failed. Redirecting...');
           setTimeout(() => {
-            // Use router.push with proper params object instead of query string
-            router.push({
-              pathname: '/auth',
-              params: { error: error_description || error }
-            });
+            router.replace('/auth?error=' + encodeURIComponent(error_description || error));
           }, 2000);
           return;
         }
@@ -96,10 +81,7 @@ export default function AuthCallbackScreen() {
             console.error('❌ Error setting session:', sessionError);
             setMessage('Session error. Redirecting...');
             setTimeout(() => {
-              router.push({
-                pathname: '/auth',
-                params: { error: sessionError.message }
-              });
+              router.replace('/auth?error=' + encodeURIComponent(sessionError.message));
             }, 2000);
             return;
           }
@@ -112,19 +94,13 @@ export default function AuthCallbackScreen() {
               console.log('🔑 Password recovery flow detected');
               setMessage('Password reset verified. Redirecting...');
               setTimeout(() => {
-                router.push({
-                  pathname: '/auth',
-                  params: { type: 'recovery' }
-                });
+                router.replace('/auth?type=recovery');
               }, 1500);
             } else if (type === 'signup') {
               console.log('✅ Email confirmation flow detected');
               setMessage('Email confirmed successfully. Redirecting...');
               setTimeout(() => {
-                router.push({
-                  pathname: '/auth',
-                  params: { type: 'signup' }
-                });
+                router.replace('/auth?type=signup');
               }, 1500);
             } else {
               console.log('✅ General authentication flow');
@@ -137,10 +113,7 @@ export default function AuthCallbackScreen() {
             console.error('❌ No session data received');
             setMessage('Authentication failed. Redirecting...');
             setTimeout(() => {
-              router.push({
-                pathname: '/auth',
-                params: { error: 'No session established' }
-              });
+              router.replace('/auth?error=' + encodeURIComponent('No session established'));
             }, 2000);
           }
         } else if (type === 'signup') {
@@ -148,10 +121,7 @@ export default function AuthCallbackScreen() {
           console.log('✅ Email confirmation detected without tokens');
           setMessage('Email confirmed. Redirecting...');
           setTimeout(() => {
-            router.push({
-              pathname: '/auth',
-              params: { type: 'signup' }
-            });
+            router.replace('/auth?type=signup');
           }, 1500);
         } else {
           console.log('❓ No tokens or type found, redirecting to auth');
@@ -164,10 +134,7 @@ export default function AuthCallbackScreen() {
         console.error('❌ Error in auth callback:', error);
         setMessage('An error occurred. Redirecting...');
         setTimeout(() => {
-          router.push({
-            pathname: '/auth',
-            params: { error: 'Callback processing failed' }
-          });
+          router.replace('/auth?error=' + encodeURIComponent('Callback processing failed'));
         }, 2000);
       } finally {
         setProcessing(false);
