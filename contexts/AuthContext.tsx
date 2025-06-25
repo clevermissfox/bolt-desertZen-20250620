@@ -45,12 +45,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initialized, setInitialized] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Add logging for loading state changes with stack trace
+  // Enhanced logging for loading state changes with stack trace
   const setLoadingWithLog = useCallback((newLoading: boolean, context: string) => {
-    console.log(`🔄 [AuthContext] Setting loading to ${newLoading} - Context: ${context}`);
-    console.log(`📍 [AuthContext] Stack trace:`, new Error().stack?.split('\n').slice(1, 4).join('\n'));
+    const currentLoading = loading;
+    console.log(`🔄 [AuthContext] Loading state change: ${currentLoading} → ${newLoading} - Context: ${context}`);
+    
+    if (newLoading === true) {
+      console.log(`⚠️ [AuthContext] SETTING LOADING TO TRUE - This might cause the loading screen!`);
+      console.log(`📍 [AuthContext] Stack trace for loading=true:`, new Error().stack?.split('\n').slice(1, 6).join('\n'));
+    } else {
+      console.log(`✅ [AuthContext] Setting loading to false - should hide loading screen`);
+    }
+    
     setLoading(newLoading);
-  }, []);
+  }, [loading]);
 
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
     if (profileLoading) {
@@ -255,19 +263,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             break;
 
           case 'PASSWORD_RECOVERY':
-            console.log('🔑 [AuthContext] Password recovery event - NOT setting loading state');
+            console.log('🔑 [AuthContext] Password recovery event - EXPLICITLY NOT setting loading state');
             setSession(newSession);
             // CRITICAL: Don't set loading for password recovery events
             // This was causing the loading screen to appear during password reset
+            console.log('🚫 [AuthContext] Skipping loading state change for PASSWORD_RECOVERY');
+            break;
+
+          case 'INITIAL_SESSION':
+            console.log('🔄 [AuthContext] Initial session event');
+            setSession(newSession);
+            if (newSession?.user && !user) {
+              console.log('👤 [AuthContext] Initial session has user, loading profile...');
+              setLoadingWithLog(true, 'onAuthStateChange - INITIAL_SESSION - has user');
+              await loadUserProfile(newSession.user);
+            } else if (!newSession?.user) {
+              console.log('👤 [AuthContext] Initial session has no user');
+              setLoadingWithLog(false, 'onAuthStateChange - INITIAL_SESSION - no user');
+            }
             break;
 
           default:
             console.log('❓ [AuthContext] Unknown auth event:', event);
             setSession(newSession);
             if (newSession?.user && !user) {
-              setLoadingWithLog(true, `onAuthStateChange - ${event}`);
+              console.log('👤 [AuthContext] Unknown event with user, loading profile...');
+              setLoadingWithLog(true, `onAuthStateChange - ${event} - has user`);
               await loadUserProfile(newSession.user);
             } else if (!newSession?.user) {
+              console.log('👤 [AuthContext] Unknown event with no user');
               setLoadingWithLog(false, `onAuthStateChange - ${event} - no user`);
             }
         }
@@ -360,7 +384,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      console.log('🔑 [AuthContext] Sending password reset email to:', email);
+      console.log('🔑 [AuthContext] Starting resetPassword function for:', email);
+      console.log('🔄 [AuthContext] Current loading state before reset:', loading);
       
       // Use the external bridge page for password reset
       const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
@@ -377,10 +402,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('📧 [AuthContext] Password reset email sent successfully');
       
-      // CRITICAL: Ensure loading state is false after password reset
-      // Password reset should not trigger a loading state in the global context
-      console.log('🔄 [AuthContext] Ensuring loading is false after password reset');
-      setLoadingWithLog(false, 'resetPassword - completed');
+      // CRITICAL: Force loading state to false immediately after password reset
+      console.log('🔄 [AuthContext] FORCE setting loading to false after password reset');
+      setLoadingWithLog(false, 'resetPassword - force completed');
+      
+      // Add a small delay and check again to ensure it sticks
+      setTimeout(() => {
+        console.log('🔄 [AuthContext] Double-checking loading state after delay...');
+        setLoadingWithLog(false, 'resetPassword - delayed check');
+      }, 100);
       
     } catch (error) {
       console.error('❌ [AuthContext] Reset password error:', error);
