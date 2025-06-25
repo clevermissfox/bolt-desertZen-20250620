@@ -257,7 +257,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           case 'PASSWORD_RECOVERY':
             console.log('🔑 [AuthContext] Password recovery event - NOT setting loading state');
             setSession(newSession);
-            // Don't set loading for password recovery events
+            // CRITICAL: Don't set loading for password recovery events
+            // This was causing the loading screen to appear during password reset
             break;
 
           default:
@@ -376,11 +377,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('📧 [AuthContext] Password reset email sent successfully');
       
-      // IMPORTANT: Don't change the global loading state for password reset
-      // The auth screen component will handle its own loading state
+      // CRITICAL: Ensure loading state is false after password reset
+      // Password reset should not trigger a loading state in the global context
+      console.log('🔄 [AuthContext] Ensuring loading is false after password reset');
+      setLoadingWithLog(false, 'resetPassword - completed');
       
     } catch (error) {
       console.error('❌ [AuthContext] Reset password error:', error);
+      // Ensure loading is false even on error
+      setLoadingWithLog(false, 'resetPassword - error');
       throw error;
     }
   };
