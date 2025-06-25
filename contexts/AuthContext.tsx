@@ -287,6 +287,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
+    // Check if user and session are both null (indicates existing user or email enumeration protection)
+    if (!data.user && !data.session) {
+      // Check if a profile already exists with this email
+      const { data: existingProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingProfile && !profileError) {
+        // User already exists
+        throw new Error('User already registered');
+      }
+      
+      // If no existing profile found, it's a new user who needs email confirmation
+      // This is the normal flow for new users
+    }
+
     console.log('Sign up successful:', data.user?.id);
     setIsGuest(false);
 

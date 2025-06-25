@@ -108,6 +108,8 @@ export default function AuthScreen() {
         setIsLogin(true);
         // Clear the password field for security
         setPassword('');
+        // Show resend confirmation option for new users
+        setShowResendConfirmation(true);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -135,7 +137,12 @@ export default function AuthScreen() {
         error.message.toLowerCase().includes('user already registered')
       ) {
         errorMessage =
-          'An account with this email already exists. Please sign in instead or use a different email address.';
+          'An account with this email already exists. Please sign in instead or use the "Resend Confirmation" option if you haven\'t confirmed your email yet.';
+        shouldShowResend = true;
+        // Switch to login mode when user already exists
+        setIsLogin(true);
+        // Clear the password field for security
+        setPassword('');
       } else if (
         error.message &&
         error.message.toLowerCase().includes('signup disabled')
