@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('Password updated successfully');
-      return data;
+      // Don't return data - function should return void
     } catch (error) {
       console.error('Update password error:', error);
       throw error;
