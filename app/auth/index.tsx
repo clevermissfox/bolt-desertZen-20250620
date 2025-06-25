@@ -81,13 +81,12 @@ export default function AuthScreen() {
         return;
       }
 
-      // Check for password reset
-      if (localSearchParams.type === 'recovery' && user) {
+      // Check for password reset - Remove the user requirement
+      if (localSearchParams.type === 'recovery') {
         setShowSetNewPasswordForm(true);
         setShowForgotPassword(false);
         setError(null);
         setSuccess(null);
-        router.setParams({ type: undefined });
         return;
       }
 
@@ -104,7 +103,8 @@ export default function AuthScreen() {
             setIsLogin(true);
           }
           
-          if (parsedUrl.queryParams?.type === 'recovery' && user) {
+          // Remove the user requirement here as well
+          if (parsedUrl.queryParams?.type === 'recovery') {
             setShowSetNewPasswordForm(true);
             setShowForgotPassword(false);
             setError(null);
@@ -117,7 +117,7 @@ export default function AuthScreen() {
     };
 
     checkDeepLinkParams();
-  }, [localSearchParams, router, user]);
+  }, [localSearchParams, router]); // Remove user dependency
 
   // Listen for URL changes while app is running
   useEffect(() => {
@@ -135,7 +135,8 @@ export default function AuthScreen() {
         }, 100);
       }
       
-      if (parsedUrl.queryParams?.type === 'recovery' && user) {
+      // Remove the user requirement here as well
+      if (parsedUrl.queryParams?.type === 'recovery') {
         setShowSetNewPasswordForm(true);
         setShowForgotPassword(false);
         setError(null);
@@ -148,7 +149,7 @@ export default function AuthScreen() {
     return () => {
       subscription?.remove();
     };
-  }, [user]);
+  }, []); // Remove user dependency
 
   const handleAuth = async () => {
     // Trim all input values to remove leading/trailing whitespace
