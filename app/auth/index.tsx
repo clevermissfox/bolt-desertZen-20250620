@@ -8,10 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -56,10 +54,9 @@ export default function AuthScreen() {
   const router = useRouter();
   const localSearchParams = useLocalSearchParams();
 
-  // Clear success message when screen comes into focus (e.g., returning from email confirmation)
+  // Clear success message when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Clear success message when returning to this screen
       setSuccess(null);
       setError(null);
       setShowResendConfirmation(false);
@@ -69,139 +66,43 @@ export default function AuthScreen() {
     }, [])
   );
 
-  // Handle email confirmation and password reset from deep links
+  // Handle parameters from callback screen
   useEffect(() => {
-    const checkDeepLinkParams = async () => {
-      console.log('🔍 Checking deep link params...');
-      console.log('📋 localSearchParams:', JSON.stringify(localSearchParams, null, 2));
-      
-      // Check for email confirmation
-      if (localSearchParams.emailConfirmed === 'true') {
-        console.log('✅ Email confirmation detected in localSearchParams');
-        setSuccess('Your email has been confirmed. Please sign in.');
-        setShowResendConfirmation(false);
-        setError(null);
-        setIsLogin(true);
-        router.setParams({ emailConfirmed: undefined });
-        return;
-      }
+    console.log('🔍 Checking auth params...');
+    console.log('📋 localSearchParams:', JSON.stringify(localSearchParams, null, 2));
 
-      // Check for password reset - Remove the user requirement
-      if (localSearchParams.type === 'recovery') {
-        console.log('🔑 Password reset detected in localSearchParams');
-        console.log('🔑 Setting showSetNewPasswordForm to true');
-        setShowSetNewPasswordForm(true);
-        setShowForgotPassword(false);
-        setError(null);
-        setSuccess(null);
-        return;
-      }
-
-      // Check initial URL for deep link parameters
-      try {
-        const initialUrl = await Linking.getInitialURL();
-        console.log('🌐 Initial URL:', initialUrl);
-        
-        if (initialUrl) {
-          const parsedUrl = Linking.parse(initialUrl);
-          console.log('🔗 Parsed URL:', JSON.stringify(parsedUrl, null, 2));
-          console.log('❓ Query params:', JSON.stringify(parsedUrl.queryParams, null, 2));
-          
-          if (parsedUrl.queryParams?.emailConfirmed === 'true') {
-            console.log('✅ Email confirmation detected in initial URL');
-            setSuccess('Your email has been confirmed. Please sign in.');
-            setShowResendConfirmation(false);
-            setError(null);
-            setIsLogin(true);
-          }
-          
-          // Remove the user requirement here as well
-          if (parsedUrl.queryParams?.type === 'recovery') {
-            console.log('🔑 Password reset detected in initial URL');
-            console.log('🔑 Setting showSetNewPasswordForm to true from initial URL');
-            setShowSetNewPasswordForm(true);
-            setShowForgotPassword(false);
-            setError(null);
-            setSuccess(null);
-          }
-        } else {
-          console.log('❌ No initial URL found');
-        }
-      } catch (error) {
-        console.error('❌ Error checking initial URL:', error);
-      }
-    };
-
-    checkDeepLinkParams();
-  }, [localSearchParams, router]); // Remove user dependency
-
-  // Listen for URL changes while app is running
-  useEffect(() => {
-    const handleUrl = (event: { url: string }) => {
-      console.log('🔗 URL event received:', event.url);
-      const parsedUrl = Linking.parse(event.url);
-      console.log('🔗 Parsed URL from event:', JSON.stringify(parsedUrl, null, 2));
-      
-      if (parsedUrl.queryParams?.emailConfirmed === 'true') {
-        console.log('✅ Email confirmation detected in URL event');
-        setSuccess('Your email has been confirmed. Please sign in.');
-        setShowResendConfirmation(false);
-        setError(null);
-        
-        // Switch to login mode after a brief delay
-        setTimeout(() => {
-          setIsLogin(true);
-        }, 100);
-      }
-      
-      // Remove the user requirement here as well
-      if (parsedUrl.queryParams?.type === 'recovery') {
-        console.log('🔑 Password reset detected in URL event');
-        console.log('🔑 Setting showSetNewPasswordForm to true from URL event');
-        setShowSetNewPasswordForm(true);
-        setShowForgotPassword(false);
-        setError(null);
-        setSuccess(null);
-      }
-    };
-
-    console.log('👂 Setting up URL event listener');
-    const subscription = Linking.addEventListener('url', handleUrl);
-    
-    return () => {
-      console.log('🔇 Removing URL event listener');
-      subscription?.remove();
-    };
-  }, []); // Remove user dependency
-
-  // Add a manual test button for development
-  const handleManualPasswordReset = () => {
-    if (__DEV__) {
-      Alert.alert(
-        'Manual Password Reset Test',
-        'This will simulate receiving a password reset link. Use this for testing in development.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Test Reset',
-            onPress: () => {
-              console.log('🧪 Manual password reset test triggered');
-              setShowSetNewPasswordForm(true);
-              setShowForgotPassword(false);
-              setError(null);
-              setSuccess(null);
-            },
-          },
-        ]
-      );
+    // Handle email confirmation success
+    if (localSearchParams.emailConfirmed === 'true') {
+      console.log('✅ Email confirmation detected');
+      setSuccess('Your email has been confirmed. Please sign in.');
+      setShowResendConfirmation(false);
+      setError(null);
+      setIsLogin(true);
+      router.setParams({ emailConfirmed: undefined });
+      return;
     }
-  };
+
+    // Handle password reset flow
+    if (localSearchParams.type === 'recovery') {
+      console.log('🔑 Password reset flow detected');
+      setShowSetNewPasswordForm(true);
+      setShowForgotPassword(false);
+      setError(null);
+      setSuccess(null);
+      router.setParams({ type: undefined });
+      return;
+    }
+
+    // Handle errors from callback
+    if (localSearchParams.error) {
+      console.log('❌ Error from callback:', localSearchParams.error);
+      setError(decodeURIComponent(localSearchParams.error as string));
+      router.setParams({ error: undefined });
+      return;
+    }
+  }, [localSearchParams, router]);
 
   const handleAuth = async () => {
-    // Trim all input values to remove leading/trailing whitespace
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     const trimmedName = name.trim();
@@ -239,51 +140,28 @@ export default function AuthScreen() {
         setSuccess(
           'Account created successfully! Please check your email for a confirmation link before signing in.'
         );
-        // Switch to login mode so user can sign in after confirming email
         setIsLogin(true);
-        // Clear the password field for security
         setPassword('');
-        // Show resend confirmation option for new users
         setShowResendConfirmation(true);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
 
-      // Handle specific error cases with more helpful messages
-      let errorMessage =
-        error.message || 'Authentication failed. Please try again.';
+      let errorMessage = error.message || 'Authentication failed. Please try again.';
       let shouldShowResend = false;
 
-      if (
-        error.message &&
-        error.message.toLowerCase().includes('email not confirmed')
-      ) {
-        errorMessage =
-          'Your email address has not been confirmed. Please check your inbox for a verification link and click it to activate your account.';
+      if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+        errorMessage = 'Your email address has not been confirmed. Please check your inbox for a verification link and click it to activate your account.';
         shouldShowResend = true;
-      } else if (
-        error.message &&
-        error.message.toLowerCase().includes('invalid login credentials')
-      ) {
-        errorMessage =
-          'Invalid email or password. Please check your credentials and try again.';
-      } else if (
-        error.message &&
-        error.message.toLowerCase().includes('user already registered')
-      ) {
-        errorMessage =
-          'An account with this email already exists. Please sign in instead or use the "Resend Confirmation" option if you haven\'t confirmed your email yet.';
+      } else if (error.message && error.message.toLowerCase().includes('invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error.message && error.message.toLowerCase().includes('user already registered')) {
+        errorMessage = 'An account with this email already exists. Please sign in instead or use the "Resend Confirmation" option if you haven\'t confirmed your email yet.';
         shouldShowResend = true;
-        // Switch to login mode when user already exists
         setIsLogin(true);
-        // Clear the password field for security
         setPassword('');
-      } else if (
-        error.message &&
-        error.message.toLowerCase().includes('signup disabled')
-      ) {
-        errorMessage =
-          'New account registration is currently disabled. Please contact support for assistance.';
+      } else if (error.message && error.message.toLowerCase().includes('signup disabled')) {
+        errorMessage = 'New account registration is currently disabled. Please contact support for assistance.';
       }
 
       setError(errorMessage);
@@ -313,11 +191,7 @@ export default function AuthScreen() {
 
     try {
       await resetPassword(trimmedEmail);
-      if (__DEV__) {
-        setSuccess('Password reset email sent! For development testing, you can also use the "Test Reset" button below.');
-      } else {
-        setSuccess('Password reset email sent! Check your inbox.');
-      }
+      setSuccess('Password reset email sent! Check your inbox and click the link to reset your password.');
       setShowForgotPassword(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send reset email');
@@ -383,9 +257,7 @@ export default function AuthScreen() {
 
     try {
       await resendConfirmationEmail(trimmedEmail);
-      setSuccess(
-        'Confirmation email sent! Please check your inbox and click the verification link.'
-      );
+      setSuccess('Confirmation email sent! Please check your inbox and click the verification link.');
       setShowResendConfirmation(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send confirmation email');
@@ -404,15 +276,6 @@ export default function AuthScreen() {
   };
 
   const styles = createStyles(theme, isDark);
-
-  // Add logging for form state
-  console.log('🎭 Current form state:', {
-    showSetNewPasswordForm,
-    showForgotPassword,
-    isLogin,
-    hasUser: !!user,
-    localSearchParams: JSON.stringify(localSearchParams)
-  });
 
   return (
     <View style={styles.container}>
@@ -446,9 +309,7 @@ export default function AuthScreen() {
                 )}
 
                 {success && (
-                  <View
-                    style={[styles.messageContainer, styles.successContainer]}
-                  >
+                  <View style={[styles.messageContainer, styles.successContainer]}>
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
                   </View>
@@ -469,9 +330,7 @@ export default function AuthScreen() {
                     autoCorrect={false}
                     passwordRules="minlength: 6;"
                   />
-                  <TouchableOpacity
-                    onPress={() => setShowNewPassword(!showNewPassword)}
-                  >
+                  <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
                     {showNewPassword ? (
                       <EyeOff size={20} color={theme.colors.textSecondary} />
                     ) : (
@@ -494,9 +353,7 @@ export default function AuthScreen() {
                     autoComplete="new-password"
                     autoCorrect={false}
                   />
-                  <TouchableOpacity
-                    onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                  >
+                  <TouchableOpacity onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
                     {showConfirmNewPassword ? (
                       <EyeOff size={20} color={theme.colors.textSecondary} />
                     ) : (
@@ -506,10 +363,7 @@ export default function AuthScreen() {
                 </View>
 
                 <TouchableOpacity
-                  style={[
-                    styles.authButton,
-                    loading && styles.authButtonDisabled,
-                  ]}
+                  style={[styles.authButton, loading && styles.authButtonDisabled]}
                   onPress={handleSetNewPassword}
                   disabled={loading}
                 >
@@ -536,10 +390,7 @@ export default function AuthScreen() {
               <>
                 <View style={styles.toggleContainer}>
                   <TouchableOpacity
-                    style={[
-                      styles.toggleButton,
-                      isLogin && styles.toggleActive,
-                    ]}
+                    style={[styles.toggleButton, isLogin && styles.toggleActive]}
                     onPress={() => {
                       setIsLogin(true);
                       setError(null);
@@ -548,20 +399,12 @@ export default function AuthScreen() {
                       setShowSetNewPasswordForm(false);
                     }}
                   >
-                    <Text
-                      style={[
-                        styles.toggleText,
-                        isLogin && styles.toggleTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.toggleText, isLogin && styles.toggleTextActive]}>
                       Sign In
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[
-                      styles.toggleButton,
-                      !isLogin && styles.toggleActive,
-                    ]}
+                    style={[styles.toggleButton, !isLogin && styles.toggleActive]}
                     onPress={() => {
                       setIsLogin(false);
                       setError(null);
@@ -570,12 +413,7 @@ export default function AuthScreen() {
                       setShowSetNewPasswordForm(false);
                     }}
                   >
-                    <Text
-                      style={[
-                        styles.toggleText,
-                        !isLogin && styles.toggleTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.toggleText, !isLogin && styles.toggleTextActive]}>
                       Sign Up
                     </Text>
                   </TouchableOpacity>
@@ -589,9 +427,7 @@ export default function AuthScreen() {
                 )}
 
                 {success && (
-                  <View
-                    style={[styles.messageContainer, styles.successContainer]}
-                  >
+                  <View style={[styles.messageContainer, styles.successContainer]}>
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
                   </View>
@@ -603,18 +439,13 @@ export default function AuthScreen() {
                       Didn't receive the confirmation email?
                     </Text>
                     <TouchableOpacity
-                      style={[
-                        styles.resendButton,
-                        resendingConfirmation && styles.resendButtonDisabled,
-                      ]}
+                      style={[styles.resendButton, resendingConfirmation && styles.resendButtonDisabled]}
                       onPress={handleResendConfirmation}
                       disabled={resendingConfirmation}
                     >
                       <RefreshCw size={16} color="white" />
                       <Text style={styles.resendButtonText}>
-                        {resendingConfirmation
-                          ? 'Sending...'
-                          : 'Resend Confirmation Email'}
+                        {resendingConfirmation ? 'Sending...' : 'Resend Confirmation Email'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -669,9 +500,7 @@ export default function AuthScreen() {
                     autoCorrect={false}
                     passwordRules={!isLogin ? 'minlength: 6;' : undefined}
                   />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     {showPassword ? (
                       <EyeOff size={20} color={theme.colors.textSecondary} />
                     ) : (
@@ -689,26 +518,17 @@ export default function AuthScreen() {
                     }}
                     disabled={loading}
                   >
-                    <Text style={styles.forgotPasswordText}>
-                      Forgot Password?
-                    </Text>
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity
-                  style={[
-                    styles.authButton,
-                    loading && styles.authButtonDisabled,
-                  ]}
+                  style={[styles.authButton, loading && styles.authButtonDisabled]}
                   onPress={handleAuth}
                   disabled={loading}
                 >
                   <Text style={styles.authButtonText}>
-                    {loading
-                      ? 'Please wait...'
-                      : isLogin
-                      ? 'Sign In'
-                      : 'Sign Up'}
+                    {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
                   </Text>
                 </TouchableOpacity>
 
@@ -719,24 +539,13 @@ export default function AuthScreen() {
                 >
                   <Text style={styles.guestButtonText}>Continue as Guest</Text>
                 </TouchableOpacity>
-
-                {/* Development test button */}
-                {__DEV__ && (
-                  <TouchableOpacity
-                    style={styles.testButton}
-                    onPress={handleManualPasswordReset}
-                  >
-                    <Text style={styles.testButtonText}>Test Password Reset (Dev Only)</Text>
-                  </TouchableOpacity>
-                )}
               </>
             ) : (
               <>
                 <View style={styles.forgotPasswordHeader}>
                   <Text style={styles.forgotPasswordTitle}>Reset Password</Text>
                   <Text style={styles.forgotPasswordSubtitle}>
-                    Enter your email address and we'll send you a link to reset
-                    your password.
+                    Enter your email address and we'll send you a link to reset your password.
                   </Text>
                 </View>
 
@@ -748,9 +557,7 @@ export default function AuthScreen() {
                 )}
 
                 {success && (
-                  <View
-                    style={[styles.messageContainer, styles.successContainer]}
-                  >
+                  <View style={[styles.messageContainer, styles.successContainer]}>
                     <CheckCircle size={16} color={theme.colors.success} />
                     <Text style={styles.successText}>{success}</Text>
                   </View>
@@ -774,10 +581,7 @@ export default function AuthScreen() {
                 </View>
 
                 <TouchableOpacity
-                  style={[
-                    styles.authButton,
-                    loading && styles.authButtonDisabled,
-                  ]}
+                  style={[styles.authButton, loading && styles.authButtonDisabled]}
                   onPress={handleForgotPassword}
                   disabled={loading}
                 >
@@ -798,16 +602,6 @@ export default function AuthScreen() {
                 >
                   <Text style={styles.backButtonText}>Back to Sign In</Text>
                 </TouchableOpacity>
-
-                {/* Development test button for forgot password screen too */}
-                {__DEV__ && (
-                  <TouchableOpacity
-                    style={styles.testButton}
-                    onPress={handleManualPasswordReset}
-                  >
-                    <Text style={styles.testButtonText}>Test Password Reset (Dev Only)</Text>
-                  </TouchableOpacity>
-                )}
               </>
             )}
           </View>
@@ -1001,18 +795,6 @@ const createStyles = (theme: any, isDark: boolean) =>
     guestButtonText: {
       color: isDark ? '#ffffff' : theme.colors.accent,
       fontSize: 16,
-      fontFamily: 'Karla-Medium',
-    },
-    testButton: {
-      alignItems: 'center',
-      paddingVertical: 12,
-      marginTop: 8,
-      backgroundColor: theme.colors.warning,
-      borderRadius: 12,
-    },
-    testButtonText: {
-      color: '#000000',
-      fontSize: 14,
       fontFamily: 'Karla-Medium',
     },
     forgotPasswordHeader: {

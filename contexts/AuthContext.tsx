@@ -137,54 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🚀 Initializing auth...');
 
-        // Handle URL-based authentication (email confirmation, password reset, etc.)
-        if (
-          typeof window !== 'undefined' &&
-          window.location &&
-          typeof window.location.search === 'string'
-        ) {
-          const urlParams = new URLSearchParams(window.location.search);
-          const accessToken = urlParams.get('access_token');
-          const refreshToken = urlParams.get('refresh_token');
-          const type = urlParams.get('type');
-
-          console.log('🔍 URL params found:', { 
-            hasAccessToken: !!accessToken, 
-            hasRefreshToken: !!refreshToken, 
-            type 
-          });
-
-          if (accessToken && refreshToken) {
-            console.log('🔑 Found auth tokens in URL, setting session...');
-
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              console.error('❌ Error setting session from URL:', error);
-            } else if (data.session) {
-              console.log('✅ Session set from URL successfully');
-              // Clear the URL parameters
-              window.history.replaceState(
-                {},
-                document.title,
-                window.location.pathname
-              );
-
-              if (isCancelled) return;
-
-              setSession(data.session);
-              setIsGuest(false);
-              await loadUserProfile(data.session.user);
-              setInitialized(true);
-              return;
-            }
-          }
-        }
-
-        // Get existing session
+        // Get existing session (don't handle URL params here anymore)
         const {
           data: { session: initialSession },
           error,
@@ -274,9 +227,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     console.log('📝 Attempting to sign up with email:', email);
 
-    // Use Linking.createURL to generate platform-appropriate redirect URLs
-    // const redirectUrl = Linking.createURL('/auth/confirm');
-    const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
+    // Use the callback route for email confirmation
+    const redirectUrl = Linking.createURL('/auth/callback?type=signup');
     console.log('🔗 Generated redirect URL for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
@@ -322,19 +274,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Create different redirect URLs based on environment
-      let redirectUrl: string;
-      
-      if (__DEV__ || Platform.OS === 'web') {
-        // For development, use a web URL that can redirect back to the app
-        redirectUrl = 'https://desert-zenmeditations.com/reset-password/';
-        console.log('🌐 Using web redirect URL for development:', redirectUrl);
-      } else {
-        // For production builds, use the app scheme
-        redirectUrl = Linking.createURL('/auth?type=recovery');
-        console.log('📱 Using app scheme redirect URL for production:', redirectUrl);
-      }
-
+      // Use the callback route for password reset
+      const redirectUrl = Linking.createURL('/auth/callback?type=recovery');
       console.log('🔗 Generated redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -377,8 +318,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('📧 Resending confirmation email to:', email);
 
-      // Use Linking.createURL to generate platform-appropriate redirect URLs
-      const redirectUrl = Linking.createURL('/auth/confirm');
+      // Use the callback route for email confirmation
+      const redirectUrl = Linking.createURL('/auth/callback?type=signup');
       console.log(
         '🔗 Generated redirect URL for resend confirmation:',
         redirectUrl
