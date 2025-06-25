@@ -38,7 +38,15 @@ export default function AuthCallbackScreen() {
             console.log('🌐 Initial URL:', initialUrl);
             const parsedUrl = Linking.parse(initialUrl);
             if (parsedUrl.queryParams) {
-              urlParams = { ...urlParams, ...parsedUrl.queryParams };
+              // Safely merge query params, ensuring only string values
+              Object.entries(parsedUrl.queryParams).forEach(([key, value]) => {
+                if (typeof value === 'string') {
+                  urlParams[key] = value;
+                } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+                  // If it's an array, take the first string value
+                  urlParams[key] = value[0];
+                }
+              });
             }
           }
         } catch (error) {
