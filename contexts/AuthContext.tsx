@@ -43,16 +43,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  // Add logging for loading state changes
+  // Add logging for loading state changes with stack trace
   const setLoadingWithLog = useCallback((newLoading: boolean, context: string) => {
     console.log(`🔄 [AuthContext] Setting loading to ${newLoading} - Context: ${context}`);
+    console.log(`📍 [AuthContext] Stack trace:`, new Error().stack?.split('\n').slice(1, 4).join('\n'));
     setLoading(newLoading);
   }, []);
 
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
+    if (profileLoading) {
+      console.log('⏳ [AuthContext] Profile already loading, skipping...');
+      return;
+    }
+
     try {
-      console.log('👤 [AuthContext] Loading profile for user:', supabaseUser.id);
+      console.log('👤 [AuthContext] Starting loadUserProfile for user:', supabaseUser.id);
+      setProfileLoading(true);
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -85,7 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (createError) {
             console.error('❌ [AuthContext] Error creating profile:', createError);
-            setLoadingWithLog(false, 'loadUserProfile - create profile error');
             return;
           }
 
@@ -98,9 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             await loadFavorites(newProfile.id);
           }
-        } else {
-          setLoadingWithLog(false, 'loadUserProfile - other profile error');
-          return;
         }
       } else if (profile) {
         console.log('✅ [AuthContext] Profile loaded successfully:', profile);
@@ -115,9 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ [AuthContext] Error in loadUserProfile:', error);
     } finally {
       console.log('🏁 [AuthContext] loadUserProfile finally block - setting loading to false');
+      setProfileLoading(false);
       setLoadingWithLog(false, 'loadUserProfile - finally block');
     }
-  }, [setLoadingWithLog]);
+  }, [setLoadingWithLog, profileLoading]);
 
   const loadFavorites = useCallback(async (userId: string) => {
     try {
@@ -141,12 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isCancelled = false;
+    let authStateSubscription: any = null;
 
     const initializeAuth = async () => {
       try {
         console.log('🚀 [AuthContext] Initializing auth...');
+        setLoadingWithLog(true, 'initializeAuth - start');
 
-        // Get existing session (don't handle URL params here anymore)
+        // Get existing session
         const {
           data: { session: initialSession },
           error,
@@ -157,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (isCancelled) {
-          console.log('🚫 [AuthContext] initializeAuth cancelled');
+          console.log('🚫 [AuthContext] initializeAuth cancelled after getSession');
           return;
         }
 
@@ -187,45 +194,102 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    initializeAuth();
+    // Set up auth state listener
+    const setupAuthListener = () => {
+      console.log('👂 [AuthContext] Setting up auth state listener...');
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        if (isCancelled) {
+          console.log('🚫 [AuthContext] onAuthStateChange cancelled');
+          return;
+        }
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (isCancelled) {
-        console.log('🚫 [AuthContext] onAuthStateChange cancelled');
-        return;
-      }
+        console.log(
+          '🔄 [AuthContext] Auth state changed:',
+          event,
+          newSession?.user?.id || 'No session'
+        );
 
-      console.log(
-        '🔄 [AuthContext] Auth state changed:',
-        event,
-        newSession?.user?.id || 'No session'
-      );
+        // Handle different auth events
+        switch (event) {
+          case 'SIGNED_IN':
+            console.log('✅ [AuthContext] User signed in');
+            setSession(newSession);
+            setIsGuest(false);
+            if (newSession?.user) {
+              setLoadingWithLog(true, 'onAuthStateChange - SIGNED_IN');
+              await loadUserProfile(newSession.user);
+            }
+            break;
 
-      setSession(newSession);
+          case 'SIGNED_OUT':
+            console.log('👋 [AuthContext] User signed out');
+            setSession(null);
+            setUser(null);
+            setFavorites([]);
+            setLoadingWithLog(false, 'onAuthStateChange - SIGNED_OUT');
+            break;
 
-      if (newSession?.user) {
-        console.log('👤 [AuthContext] New user session detected, setting loading to true and loading profile...');
-        setIsGuest(false);
-        setLoadingWithLog(true, 'onAuthStateChange - new user session');
-        await loadUserProfile(newSession.user);
-      } else {
-        console.log('👤 [AuthContext] No user in new session, clearing user data and setting loading to false');
-        setUser(null);
-        setFavorites([]);
-        setLoadingWithLog(false, 'onAuthStateChange - no user session');
-        // Don't automatically set guest mode when user signs out
+          case 'TOKEN_REFRESHED':
+            console.log('🔄 [AuthContext] Token refreshed');
+            setSession(newSession);
+            // Don't reload profile on token refresh if we already have user data
+            if (!user && newSession?.user) {
+              setLoadingWithLog(true, 'onAuthStateChange - TOKEN_REFRESHED');
+              await loadUserProfile(newSession.user);
+            }
+            break;
+
+          case 'USER_UPDATED':
+            console.log('👤 [AuthContext] User updated');
+            setSession(newSession);
+            if (newSession?.user && user) {
+              // Update existing user data without full reload
+              const updatedUser = {
+                ...user,
+                email: newSession.user.email || user.email,
+              };
+              setUser(updatedUser);
+            }
+            break;
+
+          case 'PASSWORD_RECOVERY':
+            console.log('🔑 [AuthContext] Password recovery event');
+            setSession(newSession);
+            // Don't set loading for password recovery
+            break;
+
+          default:
+            console.log('❓ [AuthContext] Unknown auth event:', event);
+            setSession(newSession);
+            if (newSession?.user && !user) {
+              setLoadingWithLog(true, `onAuthStateChange - ${event}`);
+              await loadUserProfile(newSession.user);
+            } else if (!newSession?.user) {
+              setLoadingWithLog(false, `onAuthStateChange - ${event} - no user`);
+            }
+        }
+      });
+
+      authStateSubscription = subscription;
+    };
+
+    // Initialize auth and set up listener
+    initializeAuth().then(() => {
+      if (!isCancelled) {
+        setupAuthListener();
       }
     });
 
     return () => {
       console.log('🧹 [AuthContext] Cleanup - cancelling auth initialization');
       isCancelled = true;
-      subscription.unsubscribe();
+      if (authStateSubscription) {
+        authStateSubscription.unsubscribe();
+      }
     };
-  }, [loadUserProfile, setLoadingWithLog]);
+  }, [loadUserProfile, setLoadingWithLog, user]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔐 [AuthContext] Attempting to sign in with email:', email);
@@ -295,6 +359,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
+      console.log('🔑 [AuthContext] Sending password reset email to:', email);
+      
       // Use the external bridge page for password reset
       const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
       console.log('🔗 [AuthContext] Using bridge page redirect URL for password reset:', redirectUrl);
@@ -304,6 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        console.error('❌ [AuthContext] Reset password error:', error);
         throw error;
       }
 
@@ -377,6 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setFavorites([]);
       setIsGuest(false);
+      setLoadingWithLog(false, 'signOut');
     } catch (error) {
       console.error('❌ [AuthContext] Error signing out:', error);
       throw error;
@@ -446,7 +514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  console.log('🎯 [AuthContext] Rendering children - loading:', loading, 'user:', user?.id || 'none', 'isGuest:', isGuest);
+  console.log('🎯 [AuthContext] Rendering children - loading:', loading, 'user:', user?.id || 'none', 'isGuest:', isGuest, 'profileLoading:', profileLoading);
 
   return (
     <AuthContext.Provider
