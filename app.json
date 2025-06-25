@@ -2,7 +2,7 @@
   "expo": {
     "name": "Desert Zen Meditations",
     "slug": "desert-zen-meditations",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "desertzen",
