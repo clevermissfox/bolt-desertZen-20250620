@@ -58,91 +58,51 @@ export default function AuthScreen() {
     }, [])
   );
 
-  // Enhanced useEffect to handle email confirmation feedback with detailed logging
+  // Handle email confirmation from deep links
   useEffect(() => {
-    const checkDeepLinkParams = async () => {
-      console.log('=== DEEP LINK DEBUGGING ===');
-      console.log('Local search params:', localSearchParams);
-      console.log('Local search params keys:', Object.keys(localSearchParams));
-      console.log('Local search params values:', Object.values(localSearchParams));
-      
-      // Get the initial URL that opened the app
+    const checkEmailConfirmation = async () => {
+      // Check local search params first
+      if (localSearchParams.emailConfirmed === 'true') {
+        setSuccess('Your email has been confirmed. Please sign in.');
+        setShowResendConfirmation(false);
+        setError(null);
+        setIsLogin(true);
+        router.setParams({ emailConfirmed: undefined });
+        return;
+      }
+
+      // Check initial URL for email confirmation
       try {
         const initialUrl = await Linking.getInitialURL();
-        console.log('Initial URL from Linking.getInitialURL():', initialUrl);
-        
-        if (initialUrl) {
-          // Parse the URL to see its components
-          const parsedUrl = Linking.parse(initialUrl);
-          console.log('Parsed URL object:', parsedUrl);
-          console.log('Parsed URL scheme:', parsedUrl.scheme);
-          console.log('Parsed URL hostname:', parsedUrl.hostname);
-          console.log('Parsed URL path:', parsedUrl.path);
-          console.log('Parsed URL queryParams:', parsedUrl.queryParams);
-          
-          // Check if emailConfirmed is in the parsed query params
-          if (parsedUrl.queryParams && parsedUrl.queryParams.emailConfirmed) {
-            console.log('Found emailConfirmed in parsed queryParams:', parsedUrl.queryParams.emailConfirmed);
-          }
-          
-          // Also check the raw URL for the parameter
-          if (initialUrl.includes('emailConfirmed=true')) {
-            console.log('Found emailConfirmed=true in raw URL string');
-          }
-          
-          // Check for access_token and refresh_token
-          if (parsedUrl.queryParams && parsedUrl.queryParams.access_token) {
-            console.log('Found access_token in URL');
-          }
-          if (parsedUrl.queryParams && parsedUrl.queryParams.refresh_token) {
-            console.log('Found refresh_token in URL');
-          }
+        if (initialUrl && initialUrl.includes('emailConfirmed=true')) {
+          setSuccess('Your email has been confirmed. Please sign in.');
+          setShowResendConfirmation(false);
+          setError(null);
+          setIsLogin(true);
         }
       } catch (error) {
-        console.error('Error getting initial URL:', error);
+        console.error('Error checking initial URL:', error);
       }
-      
-      // Check if emailConfirmed parameter is present
-      if (localSearchParams.emailConfirmed === 'true') {
-        console.log('emailConfirmed is true, setting success message.');
-        setSuccess('Your email has been confirmed. Please sign in.');
-        setShowResendConfirmation(false); // Hide resend confirmation when email is confirmed
-        // Optionally, remove the param from the URL to prevent showing the message again on subsequent visits
-        router.setParams({ emailConfirmed: undefined });
-        console.log('router.setParams called to clear emailConfirmed.');
-      } else {
-        console.log('emailConfirmed not found or not true. Value:', localSearchParams.emailConfirmed);
-      }
-      
-      console.log('=== END DEEP LINK DEBUGGING ===');
     };
-    
-    checkDeepLinkParams();
+
+    checkEmailConfirmation();
   }, [localSearchParams, router]);
 
-  // Additional useEffect to listen for URL changes while the app is running
+  // Listen for URL changes while app is running
   useEffect(() => {
     const handleUrl = (event: { url: string }) => {
-      console.log('=== URL CHANGE DETECTED ===');
-      console.log('New URL received:', event.url);
-      
       const parsedUrl = Linking.parse(event.url);
-      console.log('Parsed new URL:', parsedUrl);
       
       if (parsedUrl.queryParams && parsedUrl.queryParams.emailConfirmed === 'true') {
-        console.log('Email confirmation detected in URL change');
         setSuccess('Your email has been confirmed. Please sign in.');
-        setShowResendConfirmation(false); // Hide resend confirmation when email is confirmed
-        setError(null); // Clear any existing errors
+        setShowResendConfirmation(false);
+        setError(null);
         
-        // Clear any previous signup success messages
+        // Switch to login mode after a brief delay
         setTimeout(() => {
-          // Ensure we're on the login tab
           setIsLogin(true);
         }, 100);
       }
-      
-      console.log('=== END URL CHANGE ===');
     };
 
     const subscription = Linking.addEventListener('url', handleUrl);
