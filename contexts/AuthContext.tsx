@@ -44,6 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
+  const safeSetLoading = useCallback((value: boolean) => {
+    console.log(`🔄 Setting loading to: ${value}`);
+    setLoading(value);
+  }, []);
+
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
       console.log('👤 Loading profile for user:', supabaseUser.id);
@@ -106,9 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       // CRITICAL: Always set loading to false when profile loading is complete
       console.log('🏁 Profile loading complete, setting loading to false');
-      setLoading(false);
+      safeSetLoading(false);
     }
-  }, []);
+  }, [safeSetLoading]);
 
   const loadFavorites = useCallback(async (userId: string) => {
     try {
@@ -160,14 +165,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // No session found, stop loading immediately
           console.log('🚫 No initial session, stopping loading');
-          setLoading(false);
+          safeSetLoading(false);
         }
 
         setInitialized(true);
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
         if (!isCancelled) {
-          setLoading(false);
+          safeSetLoading(false);
           setInitialized(true);
         }
       }
@@ -187,6 +192,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         newSession?.user?.id || 'No session'
       );
 
+      // Handle different auth events
+      if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
+        setSession(null);
+        setUser(null);
+        setFavorites([]);
+        safeSetLoading(false);
+        return;
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Token refreshed, updating session');
+        setSession(newSession);
+        // Don't reload profile for token refresh
+        return;
+      }
+
       setSession(newSession);
 
       if (newSession?.user) {
@@ -195,18 +217,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // This prevents unnecessary loading states during session refreshes
         if (!user || user.id !== newSession.user.id) {
           console.log('🔄 Loading profile for new/different user');
-          setLoading(true);
+          safeSetLoading(true);
           await loadUserProfile(newSession.user);
         } else {
           console.log('👤 Same user, skipping profile reload');
+          // Ensure loading is false for same user
+          safeSetLoading(false);
         }
       } else {
         // User signed out or no session
         console.log('👋 No session, clearing user data');
         setUser(null);
         setFavorites([]);
-        setLoading(false);
-        // Don't automatically set guest mode when user signs out
+        safeSetLoading(false);
       }
     });
 
@@ -214,7 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isCancelled = true;
       subscription.unsubscribe();
     };
-  }, [loadUserProfile, user]);
+  }, [loadUserProfile, user, safeSetLoading]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔐 Attempting to sign in with email:', email);
@@ -363,7 +386,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setFavorites([]);
       setIsGuest(false);
-      setLoading(false); // Ensure loading is false after sign out
+      safeSetLoading(false); // Ensure loading is false after sign out
       console.log('✅ Sign out complete');
     } catch (error) {
       console.error('❌ Error signing out:', error);
@@ -377,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setFavorites([]);
-    setLoading(false); // Ensure loading is false for guest mode
+    safeSetLoading(false); // Ensure loading is false for guest mode
   };
 
   const addToFavorites = async (meditationId: string) => {

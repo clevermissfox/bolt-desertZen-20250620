@@ -27,7 +27,7 @@ export default function AuthCallbackScreen() {
           console.log('⏰ Callback processing timeout, redirecting to auth');
           setMessage('Taking longer than expected. Redirecting...');
           router.replace('/auth');
-        }, 15000); // 15 second timeout
+        }, 10000); // Reduced to 10 seconds
 
         // Get URL parameters from multiple sources
         let urlParams: Record<string, string> = {};
@@ -84,7 +84,7 @@ export default function AuthCallbackScreen() {
               pathname: '/auth',
               params: { error: error_description || error }
             });
-          }, 2000);
+          }, 1500);
           return;
         }
 
@@ -107,7 +107,7 @@ export default function AuthCallbackScreen() {
                 pathname: '/auth',
                 params: { error: sessionError.message }
               });
-            }, 2000);
+            }, 1500);
             return;
           }
 
@@ -115,16 +115,20 @@ export default function AuthCallbackScreen() {
             console.log('✅ Session established successfully');
             clearTimeout(timeoutId);
             
-            // Route based on type parameter
+            // Route based on type parameter - DON'T auto-sign in for password reset
             if (type === 'recovery') {
-              console.log('🔑 Password recovery flow detected');
+              console.log('🔑 Password recovery flow detected - redirecting to auth for password reset');
               setMessage('Password reset verified. Redirecting...');
+              
+              // Sign out the user immediately to prevent auto-login during password reset
+              await supabase.auth.signOut();
+              
               setTimeout(() => {
                 router.replace({
                   pathname: '/auth',
                   params: { type: 'recovery' }
                 });
-              }, 1500);
+              }, 1000);
             } else if (type === 'signup') {
               console.log('✅ Email confirmation flow detected');
               setMessage('Email confirmed successfully. Redirecting...');
@@ -133,13 +137,13 @@ export default function AuthCallbackScreen() {
                   pathname: '/auth',
                   params: { type: 'signup' }
                 });
-              }, 1500);
+              }, 1000);
             } else {
               console.log('✅ General authentication flow');
               setMessage('Authentication successful. Redirecting...');
               setTimeout(() => {
                 router.replace('/(tabs)');
-              }, 1500);
+              }, 1000);
             }
           } else {
             console.error('❌ No session data received');
@@ -150,7 +154,7 @@ export default function AuthCallbackScreen() {
                 pathname: '/auth',
                 params: { error: 'No session established' }
               });
-            }, 2000);
+            }, 1500);
           }
         } else if (type === 'signup') {
           // Handle email confirmation without tokens (some flows)
@@ -162,14 +166,14 @@ export default function AuthCallbackScreen() {
               pathname: '/auth',
               params: { type: 'signup' }
             });
-          }, 1500);
+          }, 1000);
         } else {
           console.log('❓ No tokens or type found, redirecting to auth');
           setMessage('Redirecting to authentication...');
           clearTimeout(timeoutId);
           setTimeout(() => {
             router.replace('/auth');
-          }, 1000);
+          }, 500);
         }
       } catch (error) {
         console.error('❌ Error in auth callback:', error);
@@ -180,7 +184,7 @@ export default function AuthCallbackScreen() {
             pathname: '/auth',
             params: { error: 'Callback processing failed' }
           });
-        }, 2000);
+        }, 1500);
       } finally {
         setProcessing(false);
       }
