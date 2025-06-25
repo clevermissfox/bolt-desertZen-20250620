@@ -267,8 +267,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     console.log('Attempting to sign up with email:', email);
 
-    // Use specific redirect URL for email confirmation
-    const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/?type=signup';
+    // Use your external bridge page for email confirmation
+    const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
     console.log('Generated redirect URL for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
@@ -296,8 +296,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Use specific redirect URL for password reset
-      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/?type=recovery';
+      // Use your external bridge page for password reset
+      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
       console.log('Generated redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -337,8 +337,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Resending confirmation email to:', email);
 
-      // Use specific redirect URL for email confirmation
-      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/?type=signup';
+      // Use your external bridge page for email confirmation
+      const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
       console.log(
         'Generated redirect URL for resend confirmation:',
         redirectUrl

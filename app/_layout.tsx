@@ -69,7 +69,6 @@ function AppContent() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/index" />
-            <Stack.Screen name="auth/bridge" />
             <Stack.Screen name="meditation/index" />
             <Stack.Screen name="+not-found" />
           </Stack>

@@ -9,9 +9,11 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import {
   User,
   Mail,
@@ -53,82 +55,116 @@ export default function AuthScreen() {
     continueAsGuest,
   } = useAuth();
   const router = useRouter();
-  const localSearchParams = useLocalSearchParams();
 
   // Clear success message when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Don't clear states if we're in a password recovery flow
-      if (localSearchParams.type !== 'recovery') {
-        setSuccess(null);
-        setError(null);
-        setShowResendConfirmation(false);
-        setNewPassword('');
-        setConfirmNewPassword('');
-        setShowSetNewPasswordForm(false);
-      }
-    }, [localSearchParams.type])
+      setSuccess(null);
+      setError(null);
+      setShowResendConfirmation(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setShowSetNewPasswordForm(false);
+    }, [])
   );
 
-  // Handle parameters from bridge page
+  // Handle deep link parameters from your external bridge
   useEffect(() => {
-    console.log('🔍 Checking auth params...');
-    console.log(
-      '📋 localSearchParams:',
-      JSON.stringify(localSearchParams, null, 2)
-    );
-
-    // Handle different types based on the type parameter
-    if (localSearchParams.type === 'signup') {
-      console.log('✅ Email confirmation success detected');
-      setSuccess('Your email has been confirmed. Please sign in.');
-      setShowResendConfirmation(false);
-      setError(null);
-      setIsLogin(true);
-      setShowForgotPassword(false);
-      setShowSetNewPasswordForm(false);
-      router.setParams({ type: undefined });
-      return;
-    }
-
-    if (localSearchParams.type === 'recovery') {
-      console.log('🔑 Password reset flow detected');
+    const handleDeepLink = async (url: string) => {
+      console.log('🔗 Handling deep link:', url);
       
-      // Check if user has an active session (they've been authenticated via the reset link)
-      if (session && session.user) {
-        console.log('✅ User authenticated via password reset link');
-        setShowSetNewPasswordForm(true);
-        setShowForgotPassword(false);
-        setError(null);
-        setSuccess('Please enter your new password below.');
-        setIsLogin(false); // Don't show login form
-      } else {
-        console.log('❌ No active session for password reset');
-        setError('Password reset session expired. Please request a new reset link.');
-        setShowForgotPassword(true);
-        setShowSetNewPasswordForm(false);
+      try {
+        const parsedUrl = Linking.parse(url);
+        const { access_token, refresh_token, type, error: linkError } = parsedUrl.queryParams || {};
+
+        console.log('🔍 Deep link params:', { access_token: !!access_token, refresh_token: !!refresh_token, type, linkError });
+
+        // Handle errors from bridge
+        if (linkError) {
+          console.error('❌ Error from bridge:', linkError);
+          setError(typeof linkError === 'string' ? linkError : 'Authentication failed');
+          return;
+        }
+
+        // Handle session establishment
+        if (access_token && refresh_token && typeof access_token === 'string' && typeof refresh_token === 'string') {
+          console.log('🔑 Setting session from deep link...');
+          setLoading(true);
+
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          if (sessionError) {
+            console.error('❌ Error setting session:', sessionError);
+            setError('Failed to establish session. Please try again.');
+            setLoading(false);
+            return;
+          }
+
+          if (data.session) {
+            console.log('✅ Session established from deep link');
+            
+            // Handle different flow types
+            if (type === 'recovery') {
+              console.log('🔑 Password recovery flow detected');
+              setShowSetNewPasswordForm(true);
+              setShowForgotPassword(false);
+              setError(null);
+              setSuccess('Please enter your new password below.');
+              setIsLogin(false);
+            } else if (type === 'signup') {
+              console.log('✅ Email confirmation flow detected');
+              setSuccess('Your email has been confirmed. You are now signed in!');
+              setTimeout(() => {
+                router.replace('/(tabs)');
+              }, 2000);
+            } else {
+              console.log('✅ General authentication flow');
+              setSuccess('Authentication successful!');
+              setTimeout(() => {
+                router.replace('/(tabs)');
+              }, 1500);
+            }
+          }
+          
+          setLoading(false);
+        } else if (type === 'signup') {
+          // Handle email confirmation without tokens
+          console.log('✅ Email confirmation detected without tokens');
+          setSuccess('Your email has been confirmed. Please sign in.');
+          setIsLogin(true);
+        }
+      } catch (error) {
+        console.error('❌ Error processing deep link:', error);
+        setError('Failed to process authentication link');
+        setLoading(false);
       }
-      
-      router.setParams({ type: undefined });
-      return;
-    }
+    };
 
-    // Handle errors from bridge page
-    if (localSearchParams.error) {
-      console.log('❌ Error from bridge page:', localSearchParams.error);
-      setError(decodeURIComponent(localSearchParams.error as string));
-      router.setParams({ error: undefined });
-      return;
-    }
-  }, [localSearchParams, router, session]);
+    // Handle initial URL (when app is opened from link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+
+    // Handle URL changes (when app is already open)
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    return () => subscription?.remove();
+  }, [router]);
 
   // Auto-redirect if user is already authenticated (but not during password reset)
   useEffect(() => {
-    if (user && !showSetNewPasswordForm && localSearchParams.type !== 'recovery') {
+    if (user && !showSetNewPasswordForm) {
       console.log('✅ User already authenticated, redirecting to tabs');
       router.replace('/(tabs)');
     }
-  }, [user, showSetNewPasswordForm, localSearchParams.type, router]);
+  }, [user, showSetNewPasswordForm, router]);
 
   const handleAuth = async () => {
     const trimmedEmail = email.trim();
