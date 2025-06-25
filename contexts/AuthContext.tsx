@@ -44,9 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
+  // Add logging for loading state changes
+  const setLoadingWithLog = useCallback((newLoading: boolean, context: string) => {
+    console.log(`🔄 [AuthContext] Setting loading to ${newLoading} - Context: ${context}`);
+    setLoading(newLoading);
+  }, []);
+
   const loadUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
-      console.log('Loading profile for user:', supabaseUser.id);
+      console.log('👤 [AuthContext] Loading profile for user:', supabaseUser.id);
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -55,11 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error loading profile:', error);
+        console.error('❌ [AuthContext] Error loading profile:', error);
 
         // If profile doesn't exist, try to create it
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile...');
+          console.log('🆕 [AuthContext] Profile not found, creating new profile...');
 
           const userName =
             supabaseUser.user_metadata?.name ||
@@ -78,13 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (createError) {
-            console.error('Error creating profile:', createError);
-            setLoading(false);
+            console.error('❌ [AuthContext] Error creating profile:', createError);
+            setLoadingWithLog(false, 'loadUserProfile - create profile error');
             return;
           }
 
           if (newProfile) {
-            console.log('Profile created successfully:', newProfile);
+            console.log('✅ [AuthContext] Profile created successfully:', newProfile);
             setUser({
               id: newProfile.id,
               email: newProfile.email,
@@ -93,11 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await loadFavorites(newProfile.id);
           }
         } else {
-          setLoading(false);
+          setLoadingWithLog(false, 'loadUserProfile - other profile error');
           return;
         }
       } else if (profile) {
-        console.log('Profile loaded successfully:', profile);
+        console.log('✅ [AuthContext] Profile loaded successfully:', profile);
         setUser({
           id: profile.id,
           email: profile.email,
@@ -106,27 +112,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadFavorites(profile.id);
       }
     } catch (error) {
-      console.error('Error in loadUserProfile:', error);
+      console.error('❌ [AuthContext] Error in loadUserProfile:', error);
     } finally {
-      setLoading(false);
+      console.log('🏁 [AuthContext] loadUserProfile finally block - setting loading to false');
+      setLoadingWithLog(false, 'loadUserProfile - finally block');
     }
-  }, []);
+  }, [setLoadingWithLog]);
 
   const loadFavorites = useCallback(async (userId: string) => {
     try {
+      console.log('❤️ [AuthContext] Loading favorites for user:', userId);
       const { data: favoritesData, error } = await supabase
         .from('favorites')
         .select('meditation_id')
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error loading favorites:', error);
+        console.error('❌ [AuthContext] Error loading favorites:', error);
         return;
       }
 
+      console.log('✅ [AuthContext] Favorites loaded:', favoritesData?.length || 0, 'items');
       setFavorites(favoritesData?.map((fav) => fav.meditation_id) || []);
     } catch (error) {
-      console.error('Error in loadFavorites:', error);
+      console.error('❌ [AuthContext] Error in loadFavorites:', error);
     }
   }, []);
 
@@ -135,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        console.log('🚀 Initializing auth...');
+        console.log('🚀 [AuthContext] Initializing auth...');
 
         // Get existing session (don't handle URL params here anymore)
         const {
@@ -144,29 +153,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('❌ Error getting initial session:', error);
+          console.error('❌ [AuthContext] Error getting initial session:', error);
         }
 
-        if (isCancelled) return;
+        if (isCancelled) {
+          console.log('🚫 [AuthContext] initializeAuth cancelled');
+          return;
+        }
 
         console.log(
-          '📋 Initial session:',
+          '📋 [AuthContext] Initial session:',
           initialSession?.user?.id || 'No session'
         );
 
         if (initialSession?.user) {
+          console.log('👤 [AuthContext] User found in initial session, loading profile...');
           setSession(initialSession);
           setIsGuest(false);
           await loadUserProfile(initialSession.user);
         } else {
-          setLoading(false);
+          console.log('👤 [AuthContext] No user in initial session, setting loading to false');
+          setLoadingWithLog(false, 'initializeAuth - no initial session');
         }
 
+        console.log('✅ [AuthContext] Setting initialized to true');
         setInitialized(true);
       } catch (error) {
-        console.error('❌ Error initializing auth:', error);
+        console.error('❌ [AuthContext] Error initializing auth:', error);
         if (!isCancelled) {
-          setLoading(false);
+          setLoadingWithLog(false, 'initializeAuth - error');
           setInitialized(true);
         }
       }
@@ -178,10 +193,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (isCancelled) return;
+      if (isCancelled) {
+        console.log('🚫 [AuthContext] onAuthStateChange cancelled');
+        return;
+      }
 
       console.log(
-        '🔄 Auth state changed:',
+        '🔄 [AuthContext] Auth state changed:',
         event,
         newSession?.user?.id || 'No session'
       );
@@ -189,25 +207,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession);
 
       if (newSession?.user) {
+        console.log('👤 [AuthContext] New user session detected, setting loading to true and loading profile...');
         setIsGuest(false);
-        setLoading(true);
+        setLoadingWithLog(true, 'onAuthStateChange - new user session');
         await loadUserProfile(newSession.user);
       } else {
+        console.log('👤 [AuthContext] No user in new session, clearing user data and setting loading to false');
         setUser(null);
         setFavorites([]);
-        setLoading(false);
+        setLoadingWithLog(false, 'onAuthStateChange - no user session');
         // Don't automatically set guest mode when user signs out
       }
     });
 
     return () => {
+      console.log('🧹 [AuthContext] Cleanup - cancelling auth initialization');
       isCancelled = true;
       subscription.unsubscribe();
     };
-  }, [loadUserProfile]);
+  }, [loadUserProfile, setLoadingWithLog]);
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔐 Attempting to sign in with email:', email);
+    console.log('🔐 [AuthContext] Attempting to sign in with email:', email);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -218,18 +239,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    console.log('✅ Sign in successful:', data.user?.id);
+    console.log('✅ [AuthContext] Sign in successful:', data.user?.id);
     setIsGuest(false);
 
     // The auth state change listener will handle loading the profile
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    console.log('📝 Attempting to sign up with email:', email);
+    console.log('📝 [AuthContext] Attempting to sign up with email:', email);
 
     // Use the external bridge page for email confirmation
     const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
-    console.log('🔗 Using bridge page redirect URL for signup:', redirectUrl);
+    console.log('🔗 [AuthContext] Using bridge page redirect URL for signup:', redirectUrl);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -265,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // This is the normal flow for new users
     }
 
-    console.log('✅ Sign up successful:', data.user?.id);
+    console.log('✅ [AuthContext] Sign up successful:', data.user?.id);
     setIsGuest(false);
 
     // Don't set loading state here - let the auth screen handle the UI
@@ -276,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Use the external bridge page for password reset
       const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
-      console.log('🔗 Using bridge page redirect URL for password reset:', redirectUrl);
+      console.log('🔗 [AuthContext] Using bridge page redirect URL for password reset:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -286,42 +307,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      console.log('📧 Password reset email sent successfully');
+      console.log('📧 [AuthContext] Password reset email sent successfully');
     } catch (error) {
-      console.error('❌ Reset password error:', error);
+      console.error('❌ [AuthContext] Reset password error:', error);
       throw error;
     }
   };
 
   const updateUserPassword = async (password: string) => {
     try {
-      console.log('🔑 Updating user password...');
+      console.log('🔑 [AuthContext] Updating user password...');
 
       const { data, error } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (error) {
-        console.error('❌ Error updating password:', error);
+        console.error('❌ [AuthContext] Error updating password:', error);
         throw error;
       }
 
-      console.log('✅ Password updated successfully');
+      console.log('✅ [AuthContext] Password updated successfully');
       // Don't return data - function should return void
     } catch (error) {
-      console.error('❌ Update password error:', error);
+      console.error('❌ [AuthContext] Update password error:', error);
       throw error;
     }
   };
 
   const resendConfirmationEmail = async (email: string) => {
     try {
-      console.log('📧 Resending confirmation email to:', email);
+      console.log('📧 [AuthContext] Resending confirmation email to:', email);
 
       // Use the external bridge page for email confirmation
       const redirectUrl = 'https://desert-zenmeditations.com/confirm-signup/';
       console.log(
-        '🔗 Using bridge page redirect URL for resend confirmation:',
+        '🔗 [AuthContext] Using bridge page redirect URL for resend confirmation:',
         redirectUrl
       );
 
@@ -337,16 +358,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      console.log('✅ Confirmation email resent successfully');
+      console.log('✅ [AuthContext] Confirmation email resent successfully');
     } catch (error) {
-      console.error('❌ Resend confirmation email error:', error);
+      console.error('❌ [AuthContext] Resend confirmation email error:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('👋 Signing out...');
+      console.log('👋 [AuthContext] Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
@@ -357,18 +378,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFavorites([]);
       setIsGuest(false);
     } catch (error) {
-      console.error('❌ Error signing out:', error);
+      console.error('❌ [AuthContext] Error signing out:', error);
       throw error;
     }
   };
 
   const continueAsGuest = () => {
-    console.log('👤 Continuing as guest...');
+    console.log('👤 [AuthContext] Continuing as guest...');
     setIsGuest(true);
     setUser(null);
     setSession(null);
     setFavorites([]);
-    setLoading(false);
+    setLoadingWithLog(false, 'continueAsGuest');
   };
 
   const addToFavorites = async (meditationId: string) => {
@@ -421,8 +442,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Don't render children until auth is initialized
   if (!initialized) {
+    console.log('⏳ [AuthContext] Not initialized yet, returning null');
     return null;
   }
+
+  console.log('🎯 [AuthContext] Rendering children - loading:', loading, 'user:', user?.id || 'none', 'isGuest:', isGuest);
 
   return (
     <AuthContext.Provider
