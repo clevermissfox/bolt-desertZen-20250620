@@ -37,13 +37,12 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showSetNewPasswordForm, setShowSetNewPasswordForm] = useState(false);
+  const [showPasswordResetForm, setShowPasswordResetForm] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   const { theme, isDark } = useTheme();
   const {
-    user,
     signIn,
     signUp,
     resetPassword,
@@ -54,57 +53,39 @@ export default function AuthScreen() {
   const router = useRouter();
   const localSearchParams = useLocalSearchParams();
 
-  // Clear success message when screen comes into focus
+  // Clear success message when screen comes into focus (e.g., returning from email confirmation)
   useFocusEffect(
     React.useCallback(() => {
+      // Clear success message when returning to this screen
       setSuccess(null);
       setError(null);
       setShowResendConfirmation(false);
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setShowSetNewPasswordForm(false);
     }, [])
   );
 
-  // Handle parameters from callback screen
+  // Handle URL parameters from your external bridge
   useEffect(() => {
+    const { type } = localSearchParams;
+
     console.log('🔍 Checking auth params...');
-    console.log(
-      '📋 localSearchParams:',
-      JSON.stringify(localSearchParams, null, 2)
-    );
+    console.log('📋 localSearchParams:', localSearchParams);
 
-    // Handle different types based on the type parameter
-    if (localSearchParams.type === 'signup') {
-      console.log('✅ Email confirmation success detected');
-      setSuccess('Your email has been confirmed. Please sign in.');
-      setShowResendConfirmation(false);
-      setError(null);
-      setIsLogin(true);
-      router.setParams({ type: undefined });
-      return;
-    }
-
-    if (localSearchParams.type === 'recovery') {
-      console.log('🔑 Password reset flow detected');
-      setShowSetNewPasswordForm(true);
+    if (type === 'recovery') {
+      console.log('🔑 Password recovery detected, showing reset form');
+      setShowPasswordResetForm(true);
       setShowForgotPassword(false);
+      setIsLogin(false);
       setError(null);
-      setSuccess(null);
-      router.setParams({ type: undefined });
-      return;
+      setSuccess('Please enter your new password below.');
+    } else if (type === 'signup') {
+      console.log('✅ Email confirmation detected');
+      setSuccess('Your email has been confirmed. Please sign in.');
+      setIsLogin(true);
     }
-
-    // Handle errors from callback
-    if (localSearchParams.error) {
-      console.log('❌ Error from callback:', localSearchParams.error);
-      setError(decodeURIComponent(localSearchParams.error as string));
-      router.setParams({ error: undefined });
-      return;
-    }
-  }, [localSearchParams, router]);
+  }, [localSearchParams]);
 
   const handleAuth = async () => {
+    // Trim all input values to remove leading/trailing whitespace
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     const trimmedName = name.trim();
@@ -128,7 +109,6 @@ export default function AuthScreen() {
     setError(null);
     setSuccess(null);
     setShowResendConfirmation(false);
-    setShowSetNewPasswordForm(false);
 
     try {
       if (isLogin) {
@@ -142,13 +122,15 @@ export default function AuthScreen() {
         setSuccess(
           'Account created successfully! Please check your email for a confirmation link before signing in.'
         );
+        // Switch to login mode so user can sign in after confirming email
         setIsLogin(true);
+        // Clear the password field for security
         setPassword('');
-        setShowResendConfirmation(true);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
 
+      // Handle specific error cases with more helpful messages
       let errorMessage =
         error.message || 'Authentication failed. Please try again.';
       let shouldShowResend = false;
@@ -171,10 +153,7 @@ export default function AuthScreen() {
         error.message.toLowerCase().includes('user already registered')
       ) {
         errorMessage =
-          'An account with this email already exists. Please sign in instead or use the "Resend Confirmation" option if you haven\'t confirmed your email yet.';
-        shouldShowResend = true;
-        setIsLogin(true);
-        setPassword('');
+          'An account with this email already exists. Please sign in instead or use a different email address.';
       } else if (
         error.message &&
         error.message.toLowerCase().includes('signup disabled')
@@ -206,13 +185,10 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setShowSetNewPasswordForm(false);
 
     try {
       await resetPassword(trimmedEmail);
-      setSuccess(
-        'Password reset email sent! Check your inbox and click the link to reset your password.'
-      );
+      setSuccess('Password reset email sent! Check your inbox.');
       setShowForgotPassword(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send reset email');
@@ -221,11 +197,11 @@ export default function AuthScreen() {
     }
   };
 
-  const handleSetNewPassword = async () => {
+  const handlePasswordReset = async () => {
     const trimmedNewPassword = newPassword.trim();
-    const trimmedConfirmNewPassword = confirmNewPassword.trim();
+    const trimmedConfirmPassword = confirmNewPassword.trim();
 
-    if (!trimmedNewPassword || !trimmedConfirmNewPassword) {
+    if (!trimmedNewPassword || !trimmedConfirmPassword) {
       setError('Please fill in both password fields');
       return;
     }
@@ -235,7 +211,7 @@ export default function AuthScreen() {
       return;
     }
 
-    if (trimmedNewPassword !== trimmedConfirmNewPassword) {
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
       setError('Passwords do not match');
       return;
     }
@@ -246,14 +222,16 @@ export default function AuthScreen() {
 
     try {
       await updateUserPassword(trimmedNewPassword);
-      setSuccess(
-        'Password updated successfully! You can now sign in with your new password.'
-      );
-      setShowSetNewPasswordForm(false);
-      setIsLogin(true);
+      setSuccess('Password updated successfully! You are now signed in.');
+
+      // Clear form and redirect
+      setShowPasswordResetForm(false);
       setNewPassword('');
       setConfirmNewPassword('');
-      setPassword('');
+
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 2000);
     } catch (error: any) {
       setError(error.message || 'Failed to update password');
     } finally {
@@ -317,7 +295,7 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.form}>
-            {showSetNewPasswordForm ? (
+            {showPasswordResetForm ? (
               <>
                 <View style={styles.forgotPasswordHeader}>
                   <Text style={styles.forgotPasswordTitle}>
@@ -402,7 +380,7 @@ export default function AuthScreen() {
                     styles.authButton,
                     loading && styles.authButtonDisabled,
                   ]}
-                  onPress={handleSetNewPassword}
+                  onPress={handlePasswordReset}
                   disabled={loading}
                 >
                   <Text style={styles.authButtonText}>
@@ -413,11 +391,12 @@ export default function AuthScreen() {
                 <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => {
-                    setShowSetNewPasswordForm(false);
+                    setShowPasswordResetForm(false);
                     setError(null);
                     setSuccess(null);
                     setNewPassword('');
                     setConfirmNewPassword('');
+                    setIsLogin(true);
                   }}
                   disabled={loading}
                 >
@@ -437,7 +416,6 @@ export default function AuthScreen() {
                       setError(null);
                       setSuccess(null);
                       setShowResendConfirmation(false);
-                      setShowSetNewPasswordForm(false);
                     }}
                   >
                     <Text
@@ -459,7 +437,6 @@ export default function AuthScreen() {
                       setError(null);
                       setSuccess(null);
                       setShowResendConfirmation(false);
-                      setShowSetNewPasswordForm(false);
                     }}
                   >
                     <Text
@@ -575,10 +552,7 @@ export default function AuthScreen() {
                 {isLogin && (
                   <TouchableOpacity
                     style={styles.forgotPasswordButton}
-                    onPress={() => {
-                      setShowForgotPassword(true);
-                      setShowSetNewPasswordForm(false);
-                    }}
+                    onPress={() => setShowForgotPassword(true)}
                     disabled={loading}
                   >
                     <Text style={styles.forgotPasswordText}>
@@ -672,7 +646,6 @@ export default function AuthScreen() {
                   style={styles.backButton}
                   onPress={() => {
                     setShowForgotPassword(false);
-                    setShowSetNewPasswordForm(false);
                     setError(null);
                     setSuccess(null);
                   }}
