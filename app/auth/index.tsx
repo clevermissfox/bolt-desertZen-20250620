@@ -9,11 +9,9 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import * as Linking from 'expo-linking';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import {
   User,
   Mail,
@@ -39,14 +37,12 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showSetNewPasswordForm, setShowSetNewPasswordForm] = useState(false);
+  const [showPasswordResetForm, setShowPasswordResetForm] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   const { theme, isDark } = useTheme();
   const {
-    user,
-    session,
     signIn,
     signUp,
     resetPassword,
@@ -55,118 +51,41 @@ export default function AuthScreen() {
     continueAsGuest,
   } = useAuth();
   const router = useRouter();
+  const localSearchParams = useLocalSearchParams();
 
-  // Clear success message when screen comes into focus
+  // Clear success message when screen comes into focus (e.g., returning from email confirmation)
   useFocusEffect(
     React.useCallback(() => {
+      // Clear success message when returning to this screen
       setSuccess(null);
       setError(null);
       setShowResendConfirmation(false);
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setShowSetNewPasswordForm(false);
     }, [])
   );
 
-  // Handle deep link parameters from your external bridge
+  // Handle URL parameters from your external bridge
   useEffect(() => {
-    const handleDeepLink = async (url: string) => {
-      console.log('🔗 Handling deep link:', url);
-      
-      try {
-        const parsedUrl = Linking.parse(url);
-        const { access_token, refresh_token, type, error: linkError } = parsedUrl.queryParams || {};
+    const { type } = localSearchParams;
+    
+    console.log('🔍 Checking auth params...');
+    console.log('📋 localSearchParams:', localSearchParams);
 
-        console.log('🔍 Deep link params:', { access_token: !!access_token, refresh_token: !!refresh_token, type, linkError });
-
-        // Handle errors from bridge
-        if (linkError) {
-          console.error('❌ Error from bridge:', linkError);
-          setError(typeof linkError === 'string' ? linkError : 'Authentication failed');
-          return;
-        }
-
-        // Handle session establishment
-        if (access_token && refresh_token && typeof access_token === 'string' && typeof refresh_token === 'string') {
-          console.log('🔑 Setting session from deep link...');
-          setLoading(true);
-
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-
-          if (sessionError) {
-            console.error('❌ Error setting session:', sessionError);
-            setError('Failed to establish session. Please try again.');
-            setLoading(false);
-            return;
-          }
-
-          if (data.session) {
-            console.log('✅ Session established from deep link');
-            
-            // Handle different flow types
-            if (type === 'recovery') {
-              console.log('🔑 Password recovery flow detected');
-              setShowSetNewPasswordForm(true);
-              setShowForgotPassword(false);
-              setError(null);
-              setSuccess('Please enter your new password below.');
-              setIsLogin(false);
-            } else if (type === 'signup') {
-              console.log('✅ Email confirmation flow detected');
-              setSuccess('Your email has been confirmed. You are now signed in!');
-              setTimeout(() => {
-                router.replace('/(tabs)');
-              }, 2000);
-            } else {
-              console.log('✅ General authentication flow');
-              setSuccess('Authentication successful!');
-              setTimeout(() => {
-                router.replace('/(tabs)');
-              }, 1500);
-            }
-          }
-          
-          setLoading(false);
-        } else if (type === 'signup') {
-          // Handle email confirmation without tokens
-          console.log('✅ Email confirmation detected without tokens');
-          setSuccess('Your email has been confirmed. Please sign in.');
-          setIsLogin(true);
-        }
-      } catch (error) {
-        console.error('❌ Error processing deep link:', error);
-        setError('Failed to process authentication link');
-        setLoading(false);
-      }
-    };
-
-    // Handle initial URL (when app is opened from link)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleDeepLink(url);
-      }
-    });
-
-    // Handle URL changes (when app is already open)
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      handleDeepLink(url);
-    });
-
-    return () => subscription?.remove();
-  }, [router]);
-
-  // Auto-redirect if user is already authenticated (but not during password reset)
-  useEffect(() => {
-    if (user && !showSetNewPasswordForm) {
-      console.log('✅ User already authenticated, redirecting to tabs');
-      router.replace('/(tabs)');
+    if (type === 'recovery') {
+      console.log('🔑 Password recovery detected, showing reset form');
+      setShowPasswordResetForm(true);
+      setShowForgotPassword(false);
+      setIsLogin(false);
+      setError(null);
+      setSuccess('Please enter your new password below.');
+    } else if (type === 'signup') {
+      console.log('✅ Email confirmation detected');
+      setSuccess('Your email has been confirmed. Please sign in.');
+      setIsLogin(true);
     }
-  }, [user, showSetNewPasswordForm, router]);
+  }, [localSearchParams]);
 
   const handleAuth = async () => {
+    // Trim all input values to remove leading/trailing whitespace
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     const trimmedName = name.trim();
@@ -190,7 +109,6 @@ export default function AuthScreen() {
     setError(null);
     setSuccess(null);
     setShowResendConfirmation(false);
-    setShowSetNewPasswordForm(false);
 
     try {
       if (isLogin) {
@@ -204,13 +122,15 @@ export default function AuthScreen() {
         setSuccess(
           'Account created successfully! Please check your email for a confirmation link before signing in.'
         );
+        // Switch to login mode so user can sign in after confirming email
         setIsLogin(true);
+        // Clear the password field for security
         setPassword('');
-        setShowResendConfirmation(true);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
 
+      // Handle specific error cases with more helpful messages
       let errorMessage =
         error.message || 'Authentication failed. Please try again.';
       let shouldShowResend = false;
@@ -233,10 +153,7 @@ export default function AuthScreen() {
         error.message.toLowerCase().includes('user already registered')
       ) {
         errorMessage =
-          'An account with this email already exists. Please sign in instead or use the "Resend Confirmation" option if you haven\'t confirmed your email yet.';
-        shouldShowResend = true;
-        setIsLogin(true);
-        setPassword('');
+          'An account with this email already exists. Please sign in instead or use a different email address.';
       } else if (
         error.message &&
         error.message.toLowerCase().includes('signup disabled')
@@ -268,13 +185,10 @@ export default function AuthScreen() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setShowSetNewPasswordForm(false);
 
     try {
       await resetPassword(trimmedEmail);
-      setSuccess(
-        'Password reset email sent! Check your inbox and click the link to reset your password.'
-      );
+      setSuccess('Password reset email sent! Check your inbox.');
       setShowForgotPassword(false);
     } catch (error: any) {
       setError(error.message || 'Failed to send reset email');
@@ -283,11 +197,11 @@ export default function AuthScreen() {
     }
   };
 
-  const handleSetNewPassword = async () => {
+  const handlePasswordReset = async () => {
     const trimmedNewPassword = newPassword.trim();
-    const trimmedConfirmNewPassword = confirmNewPassword.trim();
+    const trimmedConfirmPassword = confirmNewPassword.trim();
 
-    if (!trimmedNewPassword || !trimmedConfirmNewPassword) {
+    if (!trimmedNewPassword || !trimmedConfirmPassword) {
       setError('Please fill in both password fields');
       return;
     }
@@ -297,7 +211,7 @@ export default function AuthScreen() {
       return;
     }
 
-    if (trimmedNewPassword !== trimmedConfirmNewPassword) {
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
       setError('Passwords do not match');
       return;
     }
@@ -308,15 +222,12 @@ export default function AuthScreen() {
 
     try {
       await updateUserPassword(trimmedNewPassword);
-      setSuccess(
-        'Password updated successfully! You will now be signed in with your new password.'
-      );
+      setSuccess('Password updated successfully! You are now signed in.');
       
-      // Clear the form and redirect to main app
-      setShowSetNewPasswordForm(false);
+      // Clear form and redirect
+      setShowPasswordResetForm(false);
       setNewPassword('');
       setConfirmNewPassword('');
-      setPassword('');
       
       setTimeout(() => {
         router.replace('/(tabs)');
@@ -384,12 +295,10 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.form}>
-            {showSetNewPasswordForm ? (
+            {showPasswordResetForm ? (
               <>
                 <View style={styles.forgotPasswordHeader}>
-                  <Text style={styles.forgotPasswordTitle}>
-                    Set New Password
-                  </Text>
+                  <Text style={styles.forgotPasswordTitle}>Set New Password</Text>
                   <Text style={styles.forgotPasswordSubtitle}>
                     Enter your new password below.
                   </Text>
@@ -452,9 +361,7 @@ export default function AuthScreen() {
                     autoCorrect={false}
                   />
                   <TouchableOpacity
-                    onPress={() =>
-                      setShowConfirmNewPassword(!showConfirmNewPassword)
-                    }
+                    onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
                   >
                     {showConfirmNewPassword ? (
                       <EyeOff size={20} color={theme.colors.textSecondary} />
@@ -469,7 +376,7 @@ export default function AuthScreen() {
                     styles.authButton,
                     loading && styles.authButtonDisabled,
                   ]}
-                  onPress={handleSetNewPassword}
+                  onPress={handlePasswordReset}
                   disabled={loading}
                 >
                   <Text style={styles.authButtonText}>
@@ -480,7 +387,7 @@ export default function AuthScreen() {
                 <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => {
-                    setShowSetNewPasswordForm(false);
+                    setShowPasswordResetForm(false);
                     setError(null);
                     setSuccess(null);
                     setNewPassword('');
@@ -505,7 +412,6 @@ export default function AuthScreen() {
                       setError(null);
                       setSuccess(null);
                       setShowResendConfirmation(false);
-                      setShowSetNewPasswordForm(false);
                     }}
                   >
                     <Text
@@ -527,7 +433,6 @@ export default function AuthScreen() {
                       setError(null);
                       setSuccess(null);
                       setShowResendConfirmation(false);
-                      setShowSetNewPasswordForm(false);
                     }}
                   >
                     <Text
@@ -643,10 +548,7 @@ export default function AuthScreen() {
                 {isLogin && (
                   <TouchableOpacity
                     style={styles.forgotPasswordButton}
-                    onPress={() => {
-                      setShowForgotPassword(true);
-                      setShowSetNewPasswordForm(false);
-                    }}
+                    onPress={() => setShowForgotPassword(true)}
                     disabled={loading}
                   >
                     <Text style={styles.forgotPasswordText}>
@@ -740,7 +642,6 @@ export default function AuthScreen() {
                   style={styles.backButton}
                   onPress={() => {
                     setShowForgotPassword(false);
-                    setShowSetNewPasswordForm(false);
                     setError(null);
                     setSuccess(null);
                   }}
