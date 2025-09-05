@@ -7,7 +7,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import FloatingAudioPlayer from '@/components/FloatingAudioPlayer';
-import FloatingBolt from '@/components/FloatingBolt';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useFonts } from 'expo-font';
 import {
@@ -73,7 +72,6 @@ function AppContent() {
             <Stack.Screen name="+not-found" />
           </Stack>
           <FloatingAudioPlayer />
-          <FloatingBolt />
           <StatusBar style="auto" />
         </AuthWrapper>
       </AudioProvider>

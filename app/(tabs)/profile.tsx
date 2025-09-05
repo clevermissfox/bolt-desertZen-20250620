@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -121,13 +122,19 @@ export default function ProfileScreen() {
             <View style={styles.techDetails}>
               <View style={styles.techItem}>
                 <Code size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.techLabel}>Platform</Text>
-                <Text style={styles.techValue}>Bolt AI</Text>
+                <Text style={styles.techLabel}>Developed by</Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL('https://edicodesigns.com')}
+                >
+                  <Text style={[styles.techValue, styles.underlined]}>
+                    EDICO Designs
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.techItem}>
                 <Database size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.techLabel}>Supabase</Text>
-                <Text style={styles.techValueCode}>tzzslprrcyjzxmbkpmem</Text>
+                <Text style={styles.techLabel}>Version</Text>
+                <Text style={styles.techValue}>1.2.4</Text>
               </View>
             </View>
           </View>
@@ -238,8 +245,18 @@ export default function ProfileScreen() {
           <View style={styles.techDetails}>
             <View style={styles.techItem}>
               <Code size={16} color={theme.colors.textSecondary} />
-              <Text style={styles.techLabel}>Platform</Text>
-              <Text style={styles.techValue}>Bolt AI</Text>
+              <Text style={styles.techLabel}>Developed by</Text>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://edicodesigns.com')}
+              >
+                <Text style={[styles.techValue, styles.underlined]}>
+                  EDICO Designs
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.techItem}>
+              <Text style={styles.techLabel}>Version</Text>
+              <Text style={styles.techValue}>1.2.4</Text>
             </View>
             <View style={styles.techItem}>
               <Database size={16} color={theme.colors.textSecondary} />
@@ -512,5 +529,10 @@ const createStyles = (theme: any) =>
       fontSize: 16,
       fontFamily: 'Karla-Medium',
       color: 'white',
+    },
+    underlined: {
+      textDecorationLine: 'underline',
+      textDecorationStyle: 'solid',
+      textDecorationColor: theme.colors.text,
     },
   });
