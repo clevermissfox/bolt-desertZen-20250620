@@ -65,20 +65,7 @@ export default function AuthScreen() {
 
   // Handle URL parameters from your external bridge
   useEffect(() => {
-    const { type } = localSearchParams;
-
-    console.log('🔍 Checking auth params...');
-    console.log('📋 localSearchParams:', localSearchParams);
-
-    if (type === 'recovery') {
-      console.log('🔑 Password recovery detected, showing reset form');
-      setShowPasswordResetForm(true);
-      setShowForgotPassword(false);
-      setIsLogin(false);
-      setError(null);
-      setSuccess('Please enter your new password below.');
-    } else if (type === 'signup') {
-      console.log('✅ Email confirmation detected');
+    if (localSearchParams.emailConfirmed === 'true') {
       setSuccess('Your email has been confirmed. Please sign in.');
       setIsLogin(true);
     }
@@ -197,48 +184,6 @@ export default function AuthScreen() {
     }
   };
 
-  const handlePasswordReset = async () => {
-    const trimmedNewPassword = newPassword.trim();
-    const trimmedConfirmPassword = confirmNewPassword.trim();
-
-    if (!trimmedNewPassword || !trimmedConfirmPassword) {
-      setError('Please fill in both password fields');
-      return;
-    }
-
-    if (trimmedNewPassword.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (trimmedNewPassword !== trimmedConfirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await updateUserPassword(trimmedNewPassword);
-      setSuccess('Password updated successfully! You are now signed in.');
-
-      // Clear form and redirect
-      setShowPasswordResetForm(false);
-      setNewPassword('');
-      setConfirmNewPassword('');
-
-      setTimeout(() => {
-        router.replace('/(tabs)');
-      }, 2000);
-    } catch (error: any) {
-      setError(error.message || 'Failed to update password');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleResendConfirmation = async () => {
     const trimmedEmail = email.trim();
 
@@ -295,115 +240,7 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.form}>
-            {showPasswordResetForm ? (
-              <>
-                <View style={styles.forgotPasswordHeader}>
-                  <Text style={styles.forgotPasswordTitle}>
-                    Set New Password
-                  </Text>
-                  <Text style={styles.forgotPasswordSubtitle}>
-                    Enter your new password below.
-                  </Text>
-                </View>
-
-                {error && (
-                  <View style={styles.messageContainer}>
-                    <AlertCircle size={16} color={theme.colors.error} />
-                    <Text style={styles.errorText}>{error}</Text>
-                  </View>
-                )}
-
-                {success && (
-                  <View
-                    style={[styles.messageContainer, styles.successContainer]}
-                  >
-                    <CheckCircle size={16} color={theme.colors.success} />
-                    <Text style={styles.successText}>{success}</Text>
-                  </View>
-                )}
-
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color={theme.colors.textSecondary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="New Password"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry={!showNewPassword}
-                    editable={!loading}
-                    textContentType="newPassword"
-                    autoComplete="new-password"
-                    autoCorrect={false}
-                    passwordRules="minlength: 6;"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff size={20} color={theme.colors.textSecondary} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textSecondary} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color={theme.colors.textSecondary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm New Password"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={confirmNewPassword}
-                    onChangeText={setConfirmNewPassword}
-                    secureTextEntry={!showConfirmNewPassword}
-                    editable={!loading}
-                    textContentType="newPassword"
-                    autoComplete="new-password"
-                    autoCorrect={false}
-                  />
-                  <TouchableOpacity
-                    onPress={() =>
-                      setShowConfirmNewPassword(!showConfirmNewPassword)
-                    }
-                  >
-                    {showConfirmNewPassword ? (
-                      <EyeOff size={20} color={theme.colors.textSecondary} />
-                    ) : (
-                      <Eye size={20} color={theme.colors.textSecondary} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.authButton,
-                    loading && styles.authButtonDisabled,
-                  ]}
-                  onPress={handlePasswordReset}
-                  disabled={loading}
-                >
-                  <Text style={styles.authButtonText}>
-                    {loading ? 'Updating...' : 'Update Password'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => {
-                    setShowPasswordResetForm(false);
-                    setError(null);
-                    setSuccess(null);
-                    setNewPassword('');
-                    setConfirmNewPassword('');
-                    setIsLogin(true);
-                  }}
-                  disabled={loading}
-                >
-                  <Text style={styles.backButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </>
-            ) : !showForgotPassword ? (
+            {!showForgotPassword ? (
               <>
                 <View style={styles.toggleContainer}>
                   <TouchableOpacity
