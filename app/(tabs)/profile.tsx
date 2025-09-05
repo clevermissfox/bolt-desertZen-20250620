@@ -134,7 +134,7 @@ export default function ProfileScreen() {
               <View style={styles.techItem}>
                 <Database size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.techLabel}>Version</Text>
-                <Text style={styles.techValue}>1.2.4</Text>
+                <Text style={styles.techValue}>1.0.0</Text>
               </View>
             </View>
           </View>
@@ -255,13 +255,9 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.techItem}>
-              <Text style={styles.techLabel}>Version</Text>
-              <Text style={styles.techValue}>1.2.4</Text>
-            </View>
-            <View style={styles.techItem}>
               <Database size={16} color={theme.colors.textSecondary} />
-              <Text style={styles.techLabel}>Supabase</Text>
-              <Text style={styles.techValueCode}>tzzslprrcyjzxmbkpmem</Text>
+              <Text style={styles.techLabel}>Version</Text>
+              <Text style={styles.techValue}>1.0.0</Text>
             </View>
           </View>
         </View>
