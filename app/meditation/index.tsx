@@ -25,6 +25,7 @@ import {
   Clock,
   Volume2,
   Info,
+  Tags,
 } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -215,16 +216,16 @@ export default function MeditationScreen() {
 
         {/* Volume Control */}
         <View style={styles.volumeContainer}>
-          <Volume2 size={20} color="rgba(255,255,255,0.7)" />
+          <Volume2 size={20} color={theme.colors.neutral100a70} />
           <Slider
             style={styles.volumeSlider}
             minimumValue={0}
             maximumValue={1}
             value={volume}
             onValueChange={setVolume}
-            minimumTrackTintColor="white"
+            minimumTrackTintColor={theme.colors.neutral100}
             maximumTrackTintColor="rgba(255,255,255,0.3)"
-            thumbTintColor="white"
+            thumbTintColor={theme.colors.neutral100}
           />
         </View>
 
@@ -240,7 +241,7 @@ export default function MeditationScreen() {
               <View style={styles.metaContainer}>
                 <View style={styles.detailMetaRow}>
                   <View style={styles.detailMetaItem}>
-                    <Clock size={16} color="rgba(255,255,255,0.8)" />
+                    <Clock size={16} color={theme.colors.neutral100a70} />
                     <Text style={styles.metaLabel}>Duration</Text>
                     <Text style={styles.metaValue}>
                       {currentMeditation.length}
@@ -250,12 +251,7 @@ export default function MeditationScreen() {
 
                 <View style={styles.detailMetaRow}>
                   <View style={styles.detailMetaItem}>
-                    <View
-                      style={[
-                        styles.categoryDot,
-                        { backgroundColor: theme.colors.accent },
-                      ]}
-                    />
+                    <Tags size={16} color={theme.colors.neutral100a70} />
                     <Text style={styles.metaLabel}>Category</Text>
                     <Text style={styles.metaValue}>
                       {formatCategoryName(currentMeditation.category)}
@@ -274,7 +270,7 @@ export default function MeditationScreen() {
                       color={
                         isUserFavorite
                           ? theme.colors.accent
-                          : 'rgba(255,255,255,0.8)'
+                          : theme.colors.neutral100a70
                       }
                       fill={
                         isUserFavorite ? theme.colors.accent : 'transparent'
@@ -287,7 +283,7 @@ export default function MeditationScreen() {
                         {
                           color: isUserFavorite
                             ? theme.colors.accent
-                            : 'rgba(255,255,255,0.8)',
+                            : theme.colors.neutral100,
                         },
                       ]}
                     >
@@ -327,7 +323,7 @@ const createStyles = (theme: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: theme.colors.neutral900,
     },
     backgroundImage: {
       position: 'absolute',
@@ -407,8 +403,8 @@ const createStyles = (theme: any) =>
     sliderThumb: {
       width: 20,
       height: 20,
-      backgroundColor: 'white',
-      shadowColor: '#000',
+      backgroundColor: theme.colors.neutral100,
+      shadowColor: theme.colors.neutral900,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
@@ -422,7 +418,7 @@ const createStyles = (theme: any) =>
     timeText: {
       fontSize: 14,
       fontFamily: 'Karla-Medium',
-      color: 'rgba(255,255,255,0.8)',
+      color: theme.colors.neutral100a70,
     },
     controlsContainer: {
       flexDirection: 'row',
@@ -488,7 +484,7 @@ const createStyles = (theme: any) =>
     description: {
       fontSize: 16,
       fontFamily: 'Karla-Regular',
-      color: 'rgba(255,255,255,0.9)',
+      color: theme.colors.neutral100a70,
       lineHeight: 24,
       marginBottom: 24,
     },
@@ -512,21 +508,16 @@ const createStyles = (theme: any) =>
       flex: 1,
       paddingVertical: 4, // Add some touch area
     },
-    categoryDot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-    },
     metaLabel: {
       fontSize: 14,
       fontFamily: 'Karla-Medium',
-      color: 'rgba(255,255,255,0.7)',
+      color: theme.colors.neutral100a70,
       flex: 1,
     },
     metaValue: {
       fontSize: 14,
       fontFamily: 'Karla-Medium',
-      color: 'white',
+      color: theme.colors.neutral100,
     },
     instructionsContainer: {
       borderTopWidth: 1,
@@ -536,13 +527,13 @@ const createStyles = (theme: any) =>
     instructionsTitle: {
       fontSize: 18,
       fontFamily: 'Lora-Bold',
-      color: 'white',
+      color: theme.colors.neutral100,
       marginBottom: 12,
     },
     instructionsText: {
       fontSize: 14,
       fontFamily: 'Karla-Regular',
-      color: 'rgba(255,255,255,0.8)',
+      color: theme.colors.neutral100a70,
       lineHeight: 22,
     },
   });

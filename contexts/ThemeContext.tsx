@@ -21,7 +21,9 @@ export interface Theme {
     border: string;
     neutral0: string;
     neutral100: string;
+    neutral100a70: string;
     neutral900: string;
+    neutral900a70: string;
     notification: string;
     success: string;
     error: string;
@@ -53,7 +55,9 @@ const lightTheme: Theme = {
     border: '#D4CEC4',
     neutral0: '#FFFFFF',
     neutral100: '#F9F8F0',
+    neutral100a70: 'rgba(249, 248, 240, 0.7)',
     neutral900: '#2F2C2A',
+    neutral900a70: 'rgba(47, 44, 42, 0.7)',
     notification: '#BF4A40',
     success: '#4CAF50',
     error: '#F44336',
@@ -85,7 +89,9 @@ const darkTheme: Theme = {
     border: '#878078',
     neutral0: '#FFFFFF',
     neutral100: '#F9F8F0',
+    neutral100a70: 'rgba(249, 248, 240, 0.7)',
     neutral900: '#2F2C2A',
+    neutral900a70: 'rgba(47, 44, 42, 0.7)',
     notification: '#BF4A40',
     success: '#4CAF50',
     error: '#F44336',
